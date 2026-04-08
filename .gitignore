@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+vitest.config.js
+vitest.config.d.ts

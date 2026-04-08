@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="The Ledger icon">
+  <rect width="192" height="192" rx="42" fill="#08090a" />
+  <rect x="31" y="31" width="130" height="130" rx="30" fill="#0f1011" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+  <path d="M60 62h72" stroke="#2a2d33" stroke-linecap="round" stroke-width="8" />
+  <path d="M60 90h72" stroke="#2a2d33" stroke-linecap="round" stroke-width="8" />
+  <path d="M60 118h36v30h38" fill="none" stroke="#7170ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="12" />
+</svg>

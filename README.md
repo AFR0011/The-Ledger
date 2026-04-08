@@ -1,56 +1,49 @@
-# Private Ledger
+# The Ledger
 
-A private, mobile-first operating ledger for daily/weekly/monthly guided reflection.
+The Ledger is a private, offline-first operating ledger for daily, weekly, and monthly reflection. It keeps continuity local to the browser, surfaces the latest priorities and next step, and lets one user recover context quickly after drift or missed days.
+
+The application shell and interaction styling follow the dark-native system documented in `docs/DESIGN.md`. That file is the visual source of truth for layout density, surfaces, typography, and accent usage.
+
+## Current product scope
+
+- Guided daily, weekly, and monthly entry flows
+- Debounced local draft autosave and resume
+- Entry history, detail, edit, and delete
+- Search and filters across headlines, answers, and tags
+- Continuity card and deterministic local insights
+- JSON backup export/import with validation
+- Theme controls and local storage status
+- PWA installability and offline app shell
 
 ## Stack
 
-- React 18 + TypeScript
+- React 18
+- TypeScript
 - Vite
 - Tailwind CSS
-- `localStorage` (local-only persistence)
+- `localStorage`
+- `react-router-dom`
+- Vitest + Testing Library
+- `vite-plugin-pwa`
 
-## Product intent
+## Local run and verification
 
-Private Ledger helps one user keep continuity and momentum by answering three core questions fast:
+This machine exposes Node through Docker rather than the host shell.
 
-1. What moved?
-2. What matters now?
-3. What do I do next?
-
-## Repository status
-
-This repository currently contains **phase-0 planning + initial project skeleton** for the MVP.
-
-- Product docs and implementation plan are in [`docs/`](./docs).
-- Initial front-end architecture and folder structure are in [`src/`](./src).
-
-## Planned MVP scope
-
-- Home screen with re-entry context
-- Guided entry flow for daily/weekly/monthly prompts
-- Draft autosave + resume from `localStorage`
-- Entry history and detail view
-- Search and basic filters
-- Current trajectory card
-- Export/import JSON backup
-
-## Getting started
-
-```bash
-npm install
-npm run dev
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm install"
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run dev -- --host 0.0.0.0"
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run lint"
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run test"
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run build"
 ```
 
-## Suggested scripts
+## Repo map
 
-- `npm run dev` – local development server
-- `npm run build` – production build
-- `npm run preview` – preview production build locally
-- `npm run lint` – lint checks
-
-## Documentation map
-
+- [Project State](./docs/PROJECT_STATE.md)
+- [Design System](./docs/DESIGN.md)
+- [Repo Map](./docs/REPO_MAP.md)
+- [Run Protocol](./docs/RUN_PROTOCOL.md)
+- [Sprints](./docs/sprints.md)
+- [Architecture](./docs/architecture.md)
 - [Product Blueprint](./docs/product-blueprint.md)
-- [Implementation Plan](./docs/implementation-plan.md)
-- [Architecture & Folder Structure](./docs/architecture.md)
-- [MVP Backlog](./docs/mvp-backlog.md)
