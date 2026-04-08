@@ -58,6 +58,28 @@ export function EntriesPage() {
     [data.entries, deferredQuery, filters]
   );
 
+  const activeFilters = useMemo(() => {
+    const items: string[] = [];
+
+    if (filters.type !== 'all') {
+      items.push(filters.type);
+    }
+
+    if (filters.domainTag !== 'all') {
+      items.push(filters.domainTag);
+    }
+
+    if (filters.stateTag !== 'all') {
+      items.push(filters.stateTag);
+    }
+
+    if (deferredQuery) {
+      items.push(`query: ${deferredQuery}`);
+    }
+
+    return items;
+  }, [deferredQuery, filters.domainTag, filters.stateTag, filters.type]);
+
   const updateFilter = <K extends keyof EntryFilters>(key: K, value: EntryFilters[K]) => {
     startTransition(() => {
       setFilters((current) => ({
@@ -144,6 +166,13 @@ export function EntriesPage() {
             <p className="mt-2 text-[15px] text-[var(--text-secondary)]">
               {visibleEntries.length} {visibleEntries.length === 1 ? 'entry' : 'entries'} match the current query.
             </p>
+            {activeFilters.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <TagPill key={filter}>{filter}</TagPill>
+                ))}
+              </div>
+            ) : null}
           </div>
           <Link
             className="rounded-md border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-2 text-[13px] font-medium text-[var(--accent-bright)]"

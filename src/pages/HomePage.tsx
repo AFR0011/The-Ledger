@@ -26,7 +26,7 @@ export function HomePage() {
           </h2>
           <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">
             {latestEntry
-              ? `Last entry: ${latestEntry.periodLabel}. ${formatMissedDays(data.currentTrajectory.missedDays)}`
+              ? `Last entry: ${latestEntry.periodLabel}. ${data.currentTrajectory.reentryMessage}`
               : 'No entries yet. Begin with a daily check-in and let the ledger build continuity from there.'}
           </p>
 
@@ -49,7 +49,17 @@ export function HomePage() {
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Trajectory</p>
               <h3 className="mt-3 text-[24px] font-[510] tracking-[-0.03em] text-[var(--ink)]">Carry the live thread forward</h3>
             </div>
-            <TagPill tone="accent">{data.insights.nextStepConsistency}</TagPill>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {data.currentTrajectory.lastWeeklyEntryId ? (
+                <Link
+                  className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink)]"
+                  to={`/entries/${data.currentTrajectory.lastWeeklyEntryId}`}
+                >
+                  Latest weekly review
+                </Link>
+              ) : null}
+              <TagPill tone="accent">{data.insights.nextStepConsistency}</TagPill>
+            </div>
           </div>
 
           <div className="mt-6 space-y-5">
@@ -68,10 +78,28 @@ export function HomePage() {
               </div>
             </div>
 
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] p-4">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Weekly signal</p>
+                <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+                  {data.currentTrajectory.lastWeeklySignal || 'No weekly review yet. The first weekly entry will compress the broader signal.'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] p-4">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live thread</p>
+                <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+                  {data.currentTrajectory.lastCurrentThread || 'No current thread has been named yet.'}
+                </p>
+              </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] p-4">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Continuity note</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Re-entry note</p>
+                <TagPill>{formatMissedDays(data.currentTrajectory.missedDays)}</TagPill>
+              </div>
               <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
-                {formatMissedDays(data.currentTrajectory.missedDays)}
+                {data.currentTrajectory.reentryMessage}
               </p>
             </div>
           </div>

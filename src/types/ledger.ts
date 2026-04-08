@@ -34,9 +34,12 @@ export interface TrajectorySnapshot {
   lastKnownPriorities: string[];
   lastNextStep: string;
   lastWeeklyEntryId: string;
+  lastWeeklySignal: string;
+  lastCurrentThread: string;
   lastEntryId: string;
   lastEntryDate: string;
   missedDays: number;
+  reentryMessage: string;
 }
 
 export interface InsightSnapshot {

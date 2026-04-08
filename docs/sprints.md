@@ -10,7 +10,7 @@
   - Rebuilt Home around quick start, resume, and latest context
 
 ## Sprint 2 — Entry Management
-- Status: implemented, automated verification passed
+- Status: implemented, continuity model expanded, automated verification passed
 - Subtasks:
   - Added entries list route with empty states
   - Added detail route with prompt/answer rendering
@@ -25,6 +25,8 @@
   - Surfaced continuity context on Home
   - Added search across headlines, answers, and tags
   - Added type, domain, and state tag filters
+  - Added weekly signal, live thread, and re-entry guidance to the derived trajectory model
+  - Added active filter chips and a jump-back link to the latest weekly review
 
 ## Sprint 4 — Data Resilience
 - Status: implemented, automated verification passed
