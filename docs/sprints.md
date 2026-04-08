@@ -19,7 +19,7 @@
   - Restyled list, detail, and edit surfaces to match the dark-native shell in `docs/DESIGN.md`
 
 ## Sprint 3 — Continuity And Retrieval
-- Status: implemented, automated verification passed
+- Status: implemented, stricter backup validation added, automated verification passed
 - Subtasks:
   - Added derived trajectory snapshot
   - Surfaced continuity context on Home
@@ -35,6 +35,8 @@
   - Added import validation and overwrite confirmation
   - Added legacy key migration and storage warning states
   - Added settings page for theme, autosave, and backup actions
+  - Replaced browser confirm with a parse-first overwrite confirmation surface in Settings
+  - Added corruption cleanup and legacy-migration coverage in the test suite
 
 ## Sprint 5 — Mobile Polish And Accessibility
 - Status: implemented, automated verification passed, manual viewport check pending

@@ -9,13 +9,14 @@ import {
   type ReactNode
 } from 'react';
 import type { DraftEntry, LedgerData, LedgerEntry, StorageStatus, ThemeMode } from '../types/ledger';
-import { exportLedgerData, parseLedgerImport } from '../services/backup';
+import { exportLedgerData } from '../services/backup';
 import {
   commitDraft,
   createDraft,
   deleteEntry,
   getEntryById,
   saveDraft as persistDraftState,
+  replaceLedgerData,
   updateSettings
 } from '../services/ledgerRepository';
 import { loadLedgerData, saveLedgerData } from '../services/ledgerStorage';
@@ -33,7 +34,7 @@ interface LedgerContextValue {
   updateTheme: (theme: ThemeMode) => void;
   updateAutosave: (autosave: boolean) => void;
   exportData: () => string;
-  importData: (rawText: string) => void;
+  replaceData: (nextData: LedgerData) => void;
 }
 
 const LedgerContext = createContext<LedgerContextValue | null>(null);
@@ -126,9 +127,8 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const updateAutosave = useCallback((autosave: boolean) => {
     persist((current) => updateSettings(current, { autosave }));
   }, [persist]);
-  const importData = useCallback((rawText: string) => {
-    const imported = parseLedgerImport(rawText);
-    persist(() => imported.data);
+  const replaceData = useCallback((nextData: LedgerData) => {
+    persist(() => replaceLedgerData(nextData));
   }, [persist]);
 
   const value = useMemo<LedgerContextValue>(
@@ -145,7 +145,7 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       updateTheme,
       updateAutosave,
       exportData: () => exportLedgerData(data),
-      importData
+      replaceData
     }),
     [
       commitDraftForType,
@@ -154,7 +154,7 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       deleteEntryById,
       discardDraftForType,
       getEntry,
-      importData,
+      replaceData,
       resolvedTheme,
       saveDraft,
       status,

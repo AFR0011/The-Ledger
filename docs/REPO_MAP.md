@@ -13,8 +13,8 @@
   - Entry definitions, prompt wording, and tag vocabularies.
 - `src/services/`
   - `ledgerRepository.ts`: pure CRUD, filtering, normalization, derived state hydration
-  - `ledgerStorage.ts`: browser storage load/save and legacy key migration
-  - `backup.ts`: validated export/import envelope handling
+  - `ledgerStorage.ts`: browser storage load/save, corruption cleanup, and legacy key migration
+  - `backup.ts`: strict export/import envelope validation and overwrite-safe parsing
   - `trajectory.ts`: continuity derivation, weekly signal extraction, and re-entry messaging
   - `insights.ts`: deterministic local insight derivation
 - `src/utils/`

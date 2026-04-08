@@ -25,4 +25,31 @@ describe('backup helpers', () => {
   it('rejects invalid payloads', () => {
     expect(() => parseLedgerImport('{"format":"wrong"}')).toThrow('not a The Ledger backup');
   });
+
+  it('rejects malformed entries instead of silently normalizing them away', () => {
+    const invalidBackup = JSON.stringify({
+      format: 'the-ledger-backup',
+      version: 1,
+      exportedAt: '2026-04-08T00:00:00.000Z',
+      data: {
+        appVersion: '1.0.0',
+        entries: [
+          {
+            id: 'bad-entry',
+            type: 'yearly',
+            date: '2026-04-08'
+          }
+        ],
+        drafts: {},
+        currentTrajectory: {},
+        insights: {},
+        settings: {
+          theme: 'dark',
+          autosave: true
+        }
+      }
+    });
+
+    expect(() => parseLedgerImport(invalidBackup)).toThrow('entries are invalid or incomplete');
+  });
 });

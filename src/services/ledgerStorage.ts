@@ -11,6 +11,14 @@ function ready(message: string): StorageStatus {
   };
 }
 
+function clearStorageKey(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Best-effort cleanup only.
+  }
+}
+
 export function loadLedgerData(): { data: LedgerData; status: StorageStatus } {
   if (typeof window === 'undefined') {
     return {
@@ -31,11 +39,12 @@ export function loadLedgerData(): { data: LedgerData; status: StorageStatus } {
           status: ready('The Ledger is using your local browser storage.')
         };
       } catch {
+        clearStorageKey(STORAGE_KEY);
         return {
           data: createDefaultLedgerData(),
           status: {
             state: 'corrupted',
-            message: 'Stored data could not be read, so a fresh local ledger was created.'
+            message: 'Stored data could not be read. The invalid local snapshot was cleared and a fresh ledger was created.'
           }
         };
       }
@@ -47,9 +56,23 @@ export function loadLedgerData(): { data: LedgerData; status: StorageStatus } {
         continue;
       }
 
-      const data = normalizeLedgerData(JSON.parse(legacyValue));
+      let data: LedgerData;
+
+      try {
+        data = normalizeLedgerData(JSON.parse(legacyValue));
+      } catch {
+        clearStorageKey(legacyKey);
+        return {
+          data: createDefaultLedgerData(),
+          status: {
+            state: 'corrupted',
+            message: 'Legacy storage data was unreadable and has been cleared. The Ledger started with a fresh local snapshot.'
+          }
+        };
+      }
+
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      window.localStorage.removeItem(legacyKey);
+      clearStorageKey(legacyKey);
 
       return {
         data,

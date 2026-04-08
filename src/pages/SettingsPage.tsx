@@ -1,23 +1,41 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useLedger } from '../app/LedgerProvider';
-import { exportLedgerData } from '../services/backup';
+import type { ImportEnvelope } from '../types/ledger';
+import { parseLedgerImport } from '../services/backup';
+import { formatDateTime } from '../utils/date';
 
 const THEMES = ['system', 'light', 'dark'] as const;
 
+type FeedbackTone = 'success' | 'error';
+
+function FeedbackBanner({ message, tone }: { message: string; tone: FeedbackTone }) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-bright)]'
+      : 'border-[var(--border-subtle)] bg-[var(--danger-soft)] text-[var(--danger-ink)]';
+
+  return <section className={`rounded-xl border px-4 py-3 text-[13px] ${toneClass}`}>{message}</section>;
+}
+
 export function SettingsPage() {
-  const { data, importData, status, updateAutosave, updateTheme } = useLedger();
+  const { data, exportData, replaceData, status, updateAutosave, updateTheme } = useLedger();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
+  const [pendingImport, setPendingImport] = useState<{
+    fileName: string;
+    envelope: ImportEnvelope;
+  } | null>(null);
 
   const handleExport = () => {
-    const blob = new Blob([exportLedgerData(data)], { type: 'application/json' });
+    const blob = new Blob([exportData()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = `the-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setFeedback('Backup exported.');
+    setPendingImport(null);
+    setFeedback({ message: 'Backup exported.', tone: 'success' });
   };
 
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -26,22 +44,39 @@ export function SettingsPage() {
       return;
     }
 
-    const confirmed = window.confirm('Replace the current ledger with this backup? This will overwrite local entries and drafts.');
-    if (!confirmed) {
-      event.target.value = '';
-      return;
-    }
-
     try {
       const rawText = await file.text();
-      importData(rawText);
-      setFeedback('Backup imported successfully.');
+      const envelope = parseLedgerImport(rawText);
+      setPendingImport({
+        fileName: file.name,
+        envelope
+      });
+      setFeedback(null);
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Import failed.');
+      setPendingImport(null);
+      setFeedback({
+        message: error instanceof Error ? error.message : 'Import failed.',
+        tone: 'error'
+      });
     } finally {
       event.target.value = '';
     }
   };
+
+  const confirmImport = () => {
+    if (!pendingImport) {
+      return;
+    }
+
+    replaceData(pendingImport.envelope.data);
+    setFeedback({
+      message: `Backup imported from ${pendingImport.fileName}. Local entries and drafts were replaced.`,
+      tone: 'success'
+    });
+    setPendingImport(null);
+  };
+
+  const hasStorageWarning = status.state === 'unavailable' || status.state === 'corrupted';
 
   return (
     <main className="space-y-5">
@@ -127,14 +162,63 @@ export function SettingsPage() {
             <p>Drafts in progress: {Object.values(data.drafts).filter(Boolean).length}</p>
             <p>Current data version: {data.appVersion}</p>
           </div>
+          {hasStorageWarning ? (
+            <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--warning-soft)] px-4 py-4 text-[13px] leading-6 text-[var(--warning-ink)]">
+              Export a backup before closing the tab. When storage is unavailable or previously corrupted, the in-memory snapshot is the only safe copy until a successful export.
+            </div>
+          ) : null}
         </article>
       </section>
 
-      {feedback ? (
-        <section className="rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[13px] text-[var(--accent-bright)]">
-          {feedback}
+      {pendingImport ? (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Confirm import</p>
+              <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]">Replace the current local ledger</h3>
+              <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--text-secondary)]">
+                This overwrite is one-way inside the browser. Confirm only if you want to replace every local entry and draft with the selected backup.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Incoming backup</p>
+              <p className="mt-2 text-[var(--ink)]">{pendingImport.fileName}</p>
+              <p>Exported: {formatDateTime(pendingImport.envelope.exportedAt)}</p>
+              <p>Entries: {pendingImport.envelope.data.entries.length}</p>
+              <p>Drafts: {Object.values(pendingImport.envelope.data.drafts).filter(Boolean).length}</p>
+            </div>
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Current local data</p>
+              <p className="mt-2">Entries: {data.entries.length}</p>
+              <p>Drafts: {Object.values(data.drafts).filter(Boolean).length}</p>
+              <p>Theme: {data.settings.theme}</p>
+              <p>Autosave: {data.settings.autosave ? 'On' : 'Off'}</p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+              onClick={confirmImport}
+              type="button"
+            >
+              Confirm overwrite import
+            </button>
+            <button
+              className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              onClick={() => setPendingImport(null)}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
         </section>
       ) : null}
+
+      {feedback ? <FeedbackBanner message={feedback.message} tone={feedback.tone} /> : null}
     </main>
   );
 }

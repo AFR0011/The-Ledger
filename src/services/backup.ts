@@ -1,4 +1,5 @@
 import type { ImportEnvelope, LedgerData } from '../types/ledger';
+import { ENTRY_TYPES } from '../config/prompts';
 import { normalizeLedgerData } from './ledgerRepository';
 
 const BACKUP_FORMAT = 'the-ledger-backup';
@@ -9,7 +10,45 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function looksLikeLedgerData(value: unknown): value is LedgerData {
-  return isRecord(value) && Array.isArray(value.entries) && isRecord(value.drafts) && isRecord(value.settings);
+  return (
+    isRecord(value) &&
+    typeof value.appVersion === 'string' &&
+    Array.isArray(value.entries) &&
+    isRecord(value.drafts) &&
+    isRecord(value.settings)
+  );
+}
+
+function assertValidSettings(settings: unknown) {
+  if (!isRecord(settings)) {
+    throw new Error('Import failed because the backup payload is missing settings.');
+  }
+
+  if (!['light', 'dark', 'system'].includes(String(settings.theme))) {
+    throw new Error('Import failed because the backup theme setting is invalid.');
+  }
+
+  if (typeof settings.autosave !== 'boolean') {
+    throw new Error('Import failed because the backup autosave setting is invalid.');
+  }
+}
+
+function assertStrictLedgerData(rawData: LedgerData, normalizedData: LedgerData) {
+  assertValidSettings(rawData.settings);
+
+  if (rawData.entries.length !== normalizedData.entries.length) {
+    throw new Error('Import failed because one or more entries are invalid or incomplete.');
+  }
+
+  const rawDraftKeys = Object.keys(rawData.drafts);
+  if (rawDraftKeys.some((key) => !ENTRY_TYPES.includes(key as (typeof ENTRY_TYPES)[number]))) {
+    throw new Error('Import failed because the backup contains an unknown draft type.');
+  }
+
+  const normalizedDraftCount = Object.keys(normalizedData.drafts).length;
+  if (rawDraftKeys.length !== normalizedDraftCount) {
+    throw new Error('Import failed because one or more drafts are invalid or incomplete.');
+  }
 }
 
 export function createBackupEnvelope(data: LedgerData): ImportEnvelope {
@@ -46,10 +85,13 @@ export function parseLedgerImport(rawText: string): ImportEnvelope {
     throw new Error('Import failed because the backup payload is missing ledger data.');
   }
 
+  const normalizedData = normalizeLedgerData(parsed.data);
+  assertStrictLedgerData(parsed.data, normalizedData);
+
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : new Date().toISOString(),
-    data: normalizeLedgerData(parsed.data)
+    data: normalizedData
   };
 }

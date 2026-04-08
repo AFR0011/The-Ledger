@@ -6,10 +6,11 @@
 - Major flows are implemented: guided entries, history/detail/edit/delete, search/filter, backup import/export, settings, insights, and PWA wiring.
 - The visual system is now aligned to `docs/DESIGN.md`, which supersedes earlier visual assumptions in the planning docs.
 - Sprint 3 continuity has been tightened in code: Home now surfaces weekly signal, live thread, and explicit re-entry guidance from the derived trajectory state.
+- Sprint 4 resilience is now stricter in code: malformed backups are rejected instead of being silently normalized, corrupted local snapshots are cleared on load, and import overwrite now uses an explicit in-app confirmation surface.
 - Docker-based automated verification has passed: install, lint, test, and build.
 
 ## Active Objective
-- Continue manual browser validation on the design-aligned build, with emphasis on the richer Sprint 3 continuity surfaces on Home and retrieval filters in history.
+- Continue manual browser validation on the design-aligned build, with emphasis on the Settings import/export flow, storage warnings, and the richer Sprint 3 continuity surfaces.
 - After that, complete the remaining mobile viewport and installed/offline PWA checks.
 
 ## Known Risks
@@ -19,7 +20,7 @@
 - Drafts remain one-per-entry-type. An edit draft for a given type replaces any unsaved new-entry draft for that same type.
 
 ## Next Actions
-1. Manually test Home continuity, latest weekly jump-back, and the history filter chips.
-2. Perform the mobile viewport pass across the updated shell.
-3. Install the PWA and confirm offline launch behavior.
-4. Update sprint statuses from manual-pending to complete once those checks pass.
+1. Manually test Settings export, import preview, overwrite confirm, and storage warning behavior.
+2. Manually test Home continuity, latest weekly jump-back, and the history filter chips.
+3. Perform the mobile viewport pass across the updated shell.
+4. Install the PWA and confirm offline launch behavior.
