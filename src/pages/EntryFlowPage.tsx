@@ -23,6 +23,7 @@ export function EntryFlowPage() {
   const [draft, setDraft] = useState<DraftEntry | null>(null);
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
   useEffect(() => {
     draftStoreRef.current = data.drafts;
@@ -52,6 +53,7 @@ export function EntryFlowPage() {
   useEffect(() => {
     setFeedback('');
     setError('');
+    setConfirmingDiscard(false);
   }, [routeKey]);
 
   useEffect(() => {
@@ -121,11 +123,6 @@ export function EntryFlowPage() {
   };
 
   const discard = () => {
-    const confirmed = window.confirm('Discard this draft? Unsaved progress in the current tab will be lost.');
-    if (!confirmed) {
-      return;
-    }
-
     discardDraft(entryType);
     navigate(entryId ? `/entries/${entryId}` : '/');
   };
@@ -264,21 +261,61 @@ export function EntryFlowPage() {
       )}
 
       {error ? (
-        <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--danger-soft)] px-4 py-3 text-[13px] text-[var(--danger-ink)]">
+        <section
+          aria-live="assertive"
+          className="rounded-xl border border-[var(--border-subtle)] bg-[var(--danger-soft)] px-4 py-3 text-[13px] text-[var(--danger-ink)]"
+          role="alert"
+        >
           {error}
         </section>
       ) : null}
 
       {feedback ? (
-        <section className="rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[13px] text-[var(--accent-bright)]">
+        <section
+          aria-live="polite"
+          className="rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[13px] text-[var(--accent-bright)]"
+          role="status"
+        >
           {feedback}
+        </section>
+      ) : null}
+
+      {confirmingDiscard ? (
+        <section
+          aria-labelledby="discard-draft-title"
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--panel)] p-5 shadow-panel"
+          role="region"
+        >
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Discard draft</p>
+          <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]" id="discard-draft-title">
+            Remove this in-progress entry from local storage?
+          </h3>
+          <p className="mt-3 text-[14px] leading-6 text-[var(--text-secondary)]">
+            This clears the saved draft for the current cadence and returns you to the previous surface.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              className="rounded-md border border-[var(--danger-ink)] bg-[var(--danger-soft)] px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]"
+              onClick={discard}
+              type="button"
+            >
+              Confirm discard
+            </button>
+            <button
+              className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              onClick={() => setConfirmingDiscard(false)}
+              type="button"
+            >
+              Keep draft
+            </button>
+          </div>
         </section>
       ) : null}
 
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-panel">
         <div className="flex flex-wrap gap-2">
           <button
-            className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)] disabled:opacity-40"
+            className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)] disabled:opacity-40"
             onClick={() =>
               updateDraft((current) => ({
                 ...current,
@@ -293,7 +330,7 @@ export function EntryFlowPage() {
 
           {!isReviewStep ? (
             <button
-              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]"
+              className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]"
               onClick={() =>
                 updateDraft((current) => ({
                   ...current,
@@ -306,7 +343,7 @@ export function EntryFlowPage() {
             </button>
           ) : (
             <button
-              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]"
+              className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]"
               onClick={submit}
               type="button"
             >
@@ -317,15 +354,15 @@ export function EntryFlowPage() {
 
         <div className="flex flex-wrap gap-2">
           <button
-            className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+            className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
             onClick={saveNow}
             type="button"
           >
             Save draft
           </button>
           <button
-            className="rounded-md border border-transparent bg-transparent px-4 py-2.5 text-[13px] font-medium text-[var(--muted)] hover:border-[var(--border-subtle)] hover:bg-[var(--panel-quiet)]"
-            onClick={discard}
+            className="min-h-11 rounded-md border border-transparent bg-transparent px-4 py-2.5 text-[13px] font-medium text-[var(--muted)] hover:border-[var(--border-subtle)] hover:bg-[var(--panel-quiet)]"
+            onClick={() => setConfirmingDiscard(true)}
             type="button"
           >
             Discard

@@ -7,20 +7,23 @@
 - The visual system is now aligned to `docs/DESIGN.md`, which supersedes earlier visual assumptions in the planning docs.
 - Sprint 3 continuity has been tightened in code: Home now surfaces weekly signal, live thread, and explicit re-entry guidance from the derived trajectory state.
 - Sprint 4 resilience is now stricter in code: malformed backups are rejected instead of being silently normalized, corrupted local snapshots are cleared on load, and import overwrite now uses an explicit in-app confirmation surface.
-- Docker-based automated verification has passed: install, lint, test, and build.
+- Sprint 5 accessibility and mobile-shell polish is in code: skip link, stronger focus-visible treatment, larger tap targets, form semantics, and in-app discard confirmation have been added.
+- Sprint 6 PWA behavior is now visible in-product: install support, offline-ready/update banners, and an app-shell section in Settings are wired through a dedicated PWA provider.
+- Sprint 7 release hardening is now broader in code: insights derive recurring domains, Home surfaces suggested focus and drift signals, and entry detail explains how an entry contributes to the current insight model.
+- Docker-based automated verification is passing again: lint, test, and build all succeeded through the documented Node 20 container workflow.
+- A transient Playwright container now passes the seeded mobile/offline release regression against the live dev server: Home, entries filtering, detail insight context, theme toggle, backup export/import, offline reopen, and offline edit/save.
 
 ## Active Objective
-- Continue manual browser validation on the design-aligned build, with emphasis on the Settings import/export flow, storage warnings, and the richer Sprint 3 continuity surfaces.
-- After that, complete the remaining mobile viewport and installed/offline PWA checks.
+- Planned sprint implementation work is complete.
+- The only remaining user-side check is explicit install-prompt acceptance in a normal browser session when `beforeinstallprompt` is available.
 
 ## Known Risks
 - Verification is dependent on the Docker Node workflow because host `npm` is unavailable.
 - `docs/DESIGN.md` was added after the first implementation pass, so future UI work should treat it as the controlling visual contract.
-- PWA install/offline behavior still needs final manual confirmation after the build completes.
+- Explicit PWA installation acceptance is still browser-policy dependent and was not forced through headless automation.
 - Drafts remain one-per-entry-type. An edit draft for a given type replaces any unsaved new-entry draft for that same type.
 
 ## Next Actions
-1. Manually test Settings export, import preview, overwrite confirm, and storage warning behavior.
-2. Manually test Home continuity, latest weekly jump-back, and the history filter chips.
-3. Perform the mobile viewport pass across the updated shell.
-4. Install the PWA and confirm offline launch behavior.
+1. Use a normal interactive browser session to confirm the install prompt appears and can be accepted when supported.
+2. If the dev shell looks stale after long-running sessions or PWA-shell changes, restart the `the-ledger-dev` container before debugging UI output.
+3. Keep using the documented Docker verification ladder plus the interactive install check for future release passes.

@@ -4,7 +4,7 @@
 - `docs/DESIGN.md`
   - visual source of truth for the app shell, surfaces, type system, and accent usage
 - `src/app/`
-  - App router and the `LedgerProvider` context.
+  - App router plus `LedgerProvider` and `PwaProvider` contexts.
 - `src/pages/`
   - Route-level screens: home, entry flow, entries, entry detail, settings.
 - `src/components/`
@@ -16,7 +16,9 @@
   - `ledgerStorage.ts`: browser storage load/save, corruption cleanup, and legacy key migration
   - `backup.ts`: strict export/import envelope validation and overwrite-safe parsing
   - `trajectory.ts`: continuity derivation, weekly signal extraction, and re-entry messaging
-  - `insights.ts`: deterministic local insight derivation
+  - `insights.ts`: deterministic local insight derivation plus entry-level insight-context helpers
+- `src/pwa.ts`
+  - Service worker registration helper shared by the PWA provider.
 - `src/utils/`
   - Date formatting and text normalization helpers.
 

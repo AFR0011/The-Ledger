@@ -46,6 +46,7 @@ export interface InsightSnapshot {
   wins: string[];
   bottlenecks: string[];
   driftSignals: string[];
+  recurringDomains: string[];
   suggestedFocus: string;
   nextStepConsistency: NextStepConsistency;
 }

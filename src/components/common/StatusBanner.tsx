@@ -14,7 +14,11 @@ export function StatusBanner() {
   }
 
   return (
-    <div className={`rounded-xl border px-4 py-3 text-[13px] leading-6 shadow-panel ${STATUS_TONE[status.state]}`}>
+    <div
+      aria-live={status.state === 'migrated' ? 'polite' : 'assertive'}
+      className={`rounded-xl border px-4 py-3 text-[13px] leading-6 shadow-panel ${STATUS_TONE[status.state]}`}
+      role={status.state === 'migrated' ? 'status' : 'alert'}
+    >
       {status.message}
     </div>
   );

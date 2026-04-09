@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useLedger } from '../app/LedgerProvider';
+import { usePwa } from '../app/usePwa';
 import type { ImportEnvelope } from '../types/ledger';
 import { parseLedgerImport } from '../services/backup';
 import { formatDateTime } from '../utils/date';
@@ -14,11 +15,20 @@ function FeedbackBanner({ message, tone }: { message: string; tone: FeedbackTone
       ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-bright)]'
       : 'border-[var(--border-subtle)] bg-[var(--danger-soft)] text-[var(--danger-ink)]';
 
-  return <section className={`rounded-xl border px-4 py-3 text-[13px] ${toneClass}`}>{message}</section>;
+  return (
+    <section
+      aria-live={tone === 'success' ? 'polite' : 'assertive'}
+      className={`rounded-xl border px-4 py-3 text-[13px] ${toneClass}`}
+      role={tone === 'success' ? 'status' : 'alert'}
+    >
+      {message}
+    </section>
+  );
 }
 
 export function SettingsPage() {
   const { data, exportData, replaceData, status, updateAutosave, updateTheme } = useLedger();
+  const { canInstall, installApp, isInstalled, offlineReady } = usePwa();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
   const [pendingImport, setPendingImport] = useState<{
@@ -96,7 +106,7 @@ export function SettingsPage() {
               <button
                 key={theme}
                 className={[
-                  'rounded-md border px-4 py-2.5 text-[13px] font-medium transition',
+                  'min-h-11 rounded-md border px-4 py-2.5 text-[13px] font-medium transition',
                   data.settings.theme === theme
                     ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-bright)]'
                     : 'border-[var(--border)] bg-[var(--panel-quiet)] text-[var(--ink)] hover:bg-[var(--panel-strong)]'
@@ -120,12 +130,52 @@ export function SettingsPage() {
               </p>
             </div>
             <input
+              aria-label="Toggle autosave drafts"
               checked={data.settings.autosave}
-              className="h-5 w-5 rounded border-[var(--border)] text-[var(--accent)]"
+              className="h-6 w-6 rounded border-[var(--border)] text-[var(--accent)]"
               onChange={(event) => updateAutosave(event.target.checked)}
               type="checkbox"
             />
           </label>
+        </article>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">App shell</h3>
+          <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+            Installability depends on a successful first online load. The installed shell reuses the same browser-local data on this device and profile.
+          </p>
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+            <p>Install status: {isInstalled ? 'Installed' : canInstall ? 'Ready to install' : 'Not ready yet'}</p>
+            <p>Offline shell: {offlineReady || isInstalled ? 'Cached after first load' : 'Waiting for service worker cache'}</p>
+            <p>Data scope: local to this browser profile only</p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {canInstall ? (
+              <button
+                className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+                onClick={() => {
+                  void installApp();
+                }}
+                type="button"
+              >
+                Install The Ledger
+              </button>
+            ) : null}
+            <p className="text-[13px] leading-6 text-[var(--muted)]">
+              Offline launch works after the app shell is cached once while online.
+            </p>
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Offline limits</h3>
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+            <p>The cached shell lets the app reopen offline, but it does not sync entries between browsers or devices.</p>
+            <p className="mt-2">If local storage is cleared, the installed app shell remains but the ledger data does not.</p>
+            <p className="mt-2">Export backups before browser resets, profile changes, or device moves.</p>
+          </div>
         </article>
       </section>
 
@@ -137,14 +187,14 @@ export function SettingsPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
-              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+              className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
               onClick={handleExport}
               type="button"
             >
               Export backup
             </button>
             <button
-              className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
               onClick={() => inputRef.current?.click()}
               type="button"
             >
@@ -171,11 +221,17 @@ export function SettingsPage() {
       </section>
 
       {pendingImport ? (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+        <section
+          aria-labelledby="confirm-import-title"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel"
+          role="region"
+        >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Confirm import</p>
-              <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]">Replace the current local ledger</h3>
+              <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]" id="confirm-import-title">
+                Replace the current local ledger
+              </h3>
               <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--text-secondary)]">
                 This overwrite is one-way inside the browser. Confirm only if you want to replace every local entry and draft with the selected backup.
               </p>
@@ -201,14 +257,14 @@ export function SettingsPage() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <button
-              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+              className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
               onClick={confirmImport}
               type="button"
             >
               Confirm overwrite import
             </button>
             <button
-              className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
               onClick={() => setPendingImport(null)}
               type="button"
             >

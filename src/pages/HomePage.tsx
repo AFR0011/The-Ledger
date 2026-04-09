@@ -151,10 +151,35 @@ export function HomePage() {
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Local insights</p>
               <h2 className="mt-3 text-[24px] font-[510] tracking-[-0.03em] text-[var(--ink)]">Pattern signals</h2>
             </div>
-            <TagPill tone="warm">{`${data.insights.wins.length} wins`}</TagPill>
+            <div className="flex flex-wrap gap-2">
+              <TagPill tone="accent">{data.insights.nextStepConsistency}</TagPill>
+              <TagPill tone="warm">{`${data.insights.wins.length} wins`}</TagPill>
+            </div>
           </div>
 
           <div className="mt-5 space-y-5">
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] p-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Suggested focus</p>
+              <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+                {data.insights.suggestedFocus || 'Finish a few entries and the ledger will synthesize the strongest next focus.'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Recurring domains</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {data.insights.recurringDomains.length > 0 ? (
+                  data.insights.recurringDomains.map((tag) => (
+                    <TagPill key={tag}>{tag}</TagPill>
+                  ))
+                ) : (
+                  <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+                    Domain patterns appear once the same areas show up repeatedly across recent entries.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Wins</p>
               <ul className="mt-3 space-y-2 text-[14px] leading-6 text-[var(--text-secondary)]">
@@ -173,6 +198,17 @@ export function HomePage() {
                   data.insights.bottlenecks.map((item) => <li key={item}>{item}</li>)
                 ) : (
                   <li>No recurring bottlenecks have been detected yet.</li>
+                )}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Drift signals</p>
+              <ul className="mt-3 space-y-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+                {data.insights.driftSignals.length > 0 ? (
+                  data.insights.driftSignals.map((signal) => <li key={signal}>{signal}</li>)
+                ) : (
+                  <li>No active drift signal has been detected from the recent ledger.</li>
                 )}
               </ul>
             </div>

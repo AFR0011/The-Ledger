@@ -59,6 +59,7 @@ html[data-theme='light'] {
 html {
   min-height: 100%;
   background: var(--canvas);
+  scroll-padding-top: 7rem;
 }
 
 body {
@@ -73,6 +74,7 @@ body {
   font-family: Inter, 'Inter Variable', 'SF Pro Display', system-ui, sans-serif;
   font-feature-settings: 'cv01', 'ss03';
   text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
@@ -93,6 +95,15 @@ textarea {
 }
 
 button,
+[type='button'],
+[type='submit'],
+a,
+label[for],
+summary {
+  touch-action: manipulation;
+}
+
+button,
 a,
 input,
 select,
@@ -110,6 +121,57 @@ textarea {
   resize: vertical;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow:
+    0 0 0 1px rgba(113, 112, 255, 0.18),
+    0 0 0 4px rgba(113, 112, 255, 0.12),
+    0 14px 34px rgba(0, 0, 0, 0.34);
+}
+
+[data-focus-target] {
+  scroll-margin-top: 7.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 60;
+  transform: translateY(-150%);
+  border: 1px solid var(--accent-border);
+  background: rgba(15, 16, 17, 0.98);
+  color: var(--ink);
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 510;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 ::selection {
   background: rgba(113, 112, 255, 0.22);
 }
@@ -122,5 +184,11 @@ textarea {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
 }

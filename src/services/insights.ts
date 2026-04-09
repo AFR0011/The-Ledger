@@ -6,6 +6,7 @@ function buildEmptyInsights(): InsightSnapshot {
     wins: [],
     bottlenecks: [],
     driftSignals: [],
+    recurringDomains: [],
     suggestedFocus: '',
     nextStepConsistency: 'reset'
   };
@@ -44,6 +45,22 @@ function compareTokenOverlap(a: string, b: string): number {
   return shared / Math.max(first.size, second.size);
 }
 
+function deriveRecurringDomains(entries: LedgerEntry[]): string[] {
+  const counts = new Map<string, number>();
+
+  for (const entry of entries) {
+    for (const tag of entry.domainTags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 3)
+    .map(([tag]) => tag);
+}
+
 function deriveConsistency(entries: LedgerEntry[]): NextStepConsistency {
   const nextSteps = entries
     .map((entry) =>
@@ -67,6 +84,45 @@ function deriveConsistency(entries: LedgerEntry[]): NextStepConsistency {
 
 export function createEmptyInsights(): InsightSnapshot {
   return buildEmptyInsights();
+}
+
+export function describeEntryInsightContext(entry: LedgerEntry, trajectory: TrajectorySnapshot): string[] {
+  const context: string[] = [];
+
+  if (entry.id === trajectory.lastEntryId) {
+    context.push('Latest continuity anchor');
+  }
+
+  if (entry.id === trajectory.lastWeeklyEntryId) {
+    context.push('Defines the current weekly signal');
+  }
+
+  if (
+    entry.stateTags.includes('win') ||
+    Boolean(entry.answers.evidence_of_progress) ||
+    Boolean(entry.answers.proof_of_progress) ||
+    Boolean(entry.answers.improved)
+  ) {
+    context.push('Feeds the wins signal');
+  }
+
+  if (
+    entry.stateTags.includes('bottleneck') ||
+    Boolean(entry.answers.bottlenecks_kept_showing_up) ||
+    Boolean(entry.answers.regressed)
+  ) {
+    context.push('Feeds bottleneck tracking');
+  }
+
+  if (
+    entry.stateTags.includes('drift') ||
+    Boolean(entry.answers.drift_or_fragment) ||
+    Boolean(entry.answers.reduce_or_constrain)
+  ) {
+    context.push('Feeds drift tracking');
+  }
+
+  return dedupe(context);
 }
 
 export function deriveInsights(entries: LedgerEntry[], trajectory: TrajectorySnapshot): InsightSnapshot {
@@ -117,6 +173,7 @@ export function deriveInsights(entries: LedgerEntry[], trajectory: TrajectorySna
     wins,
     bottlenecks,
     driftSignals,
+    recurringDomains: deriveRecurringDomains(recentEntries),
     suggestedFocus:
       trajectory.lastNextStep ||
       selectSignal(recentEntries[0], ['next_right_step', 'next_week_about', 'next_month_about']) ||

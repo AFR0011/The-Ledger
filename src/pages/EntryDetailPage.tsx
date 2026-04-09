@@ -4,12 +4,13 @@ import { useLedger } from '../app/LedgerProvider';
 import { EmptyState } from '../components/common/EmptyState';
 import { TagPill } from '../components/common/TagPill';
 import { ENTRY_BLUEPRINTS } from '../config/prompts';
+import { describeEntryInsightContext } from '../services/insights';
 import { formatDateTime, formatDisplayDate } from '../utils/date';
 
 export function EntryDetailPage() {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { deleteEntry, getEntry } = useLedger();
+  const { data, deleteEntry, getEntry } = useLedger();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const entry = entryId ? getEntry(entryId) : undefined;
 
@@ -31,6 +32,7 @@ export function EntryDetailPage() {
   }
 
   const prompts = ENTRY_BLUEPRINTS[entry.type].prompts;
+  const insightContext = describeEntryInsightContext(entry, data.currentTrajectory);
 
   return (
     <main className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -52,13 +54,13 @@ export function EntryDetailPage() {
 
             <div className="flex flex-wrap gap-2">
               <Link
-                className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)] hover:bg-[var(--panel-strong)]"
+                className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)] hover:bg-[var(--panel-strong)]"
                 to={`/entries/${entry.id}/edit`}
               >
                 Edit entry
               </Link>
               <button
-                className="rounded-md border border-[var(--border-subtle)] bg-[var(--danger-soft)] px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]"
+                className="min-h-11 rounded-md border border-[var(--border-subtle)] bg-[var(--danger-soft)] px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]"
                 onClick={() => setConfirmingDelete((current) => !current)}
                 type="button"
               >
@@ -80,15 +82,21 @@ export function EntryDetailPage() {
         </article>
 
         {confirmingDelete ? (
-          <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--danger-soft)] p-5 shadow-panel">
+          <section
+            aria-labelledby="delete-entry-title"
+            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--danger-soft)] p-5 shadow-panel"
+            role="region"
+          >
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--danger-ink)]">Delete confirmation</p>
-            <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]">Remove this entry from local history?</h3>
+            <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]" id="delete-entry-title">
+              Remove this entry from local history?
+            </h3>
             <p className="mt-3 text-[14px] leading-6 text-[var(--text-secondary)]">
               This removes the entry permanently from browser storage. Export a backup first if you may need to recover it later.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button
-                className="rounded-md border border-[var(--danger-ink)] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]"
+                className="min-h-11 rounded-md border border-[var(--danger-ink)] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]"
                 onClick={() => {
                   deleteEntry(entry.id);
                   navigate('/entries');
@@ -98,7 +106,7 @@ export function EntryDetailPage() {
                 Confirm delete
               </button>
               <button
-                className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+                className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
                 onClick={() => setConfirmingDelete(false)}
                 type="button"
               >
@@ -142,16 +150,42 @@ export function EntryDetailPage() {
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Insight context</p>
+          <div className="mt-4 space-y-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">Suggested focus now</p>
+              <p className="mt-1">{data.insights.suggestedFocus || 'No focus signal yet.'}</p>
+            </div>
+
+            {insightContext.length > 0 ? (
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">How this entry contributes</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {insightContext.map((item) => (
+                    <TagPill key={item}>{item}</TagPill>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">How this entry contributes</p>
+                <p className="mt-1">This entry is not currently driving a highlighted win, bottleneck, drift, or continuity anchor.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Actions</p>
           <div className="mt-4 flex flex-col gap-3">
             <Link
-              className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+              className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
               to={`/entries/${entry.id}/edit`}
             >
               Edit this entry
             </Link>
             <Link
-              className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
               to="/entries"
             >
               Back to history

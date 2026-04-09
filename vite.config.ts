@@ -7,7 +7,15 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true
+      },
       includeAssets: ['icons/the-ledger-192.svg', 'icons/the-ledger-512.svg'],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}']
+      },
       manifest: {
         name: 'The Ledger',
         short_name: 'Ledger',
