@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import { registerTheLedgerServiceWorker, type ServiceWorkerUpdate } from '../pwa';
+import { registerTheLedgerServiceWorker, resetTheLedgerAppShell, type ServiceWorkerUpdate } from '../pwa';
 import { PwaContext, type PwaContextValue } from './PwaContext';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -31,6 +31,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(() => detectStandaloneMode());
   const updateServiceWorkerRef = useRef<ServiceWorkerUpdate | null>(null);
+  const reloadedForControllerChangeRef = useRef(false);
 
   useEffect(() => {
     const updateServiceWorker = registerTheLedgerServiceWorker({
@@ -68,10 +69,22 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     window.addEventListener('appinstalled', handleInstalled);
     mediaQuery.addEventListener('change', handleDisplayModeChange);
 
+    const handleControllerChange = () => {
+      if (reloadedForControllerChangeRef.current) {
+        return;
+      }
+
+      reloadedForControllerChangeRef.current = true;
+      window.location.reload();
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
       window.removeEventListener('appinstalled', handleInstalled);
       mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
@@ -96,6 +109,10 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const resetAppShell = useCallback(async () => {
+    await resetTheLedgerAppShell();
+  }, []);
+
   const value = useMemo<PwaContextValue>(
     () => ({
       canInstall: deferredPrompt !== null && !isInstalled,
@@ -104,10 +121,11 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       updateAvailable,
       installApp,
       applyUpdate,
+      resetAppShell,
       dismissOfflineReady: () => setOfflineReady(false),
       dismissUpdate: () => setUpdateAvailable(false)
     }),
-    [applyUpdate, deferredPrompt, installApp, isInstalled, offlineReady, updateAvailable]
+    [applyUpdate, deferredPrompt, installApp, isInstalled, offlineReady, resetAppShell, updateAvailable]
   );
 
   return <PwaContext.Provider value={value}>{children}</PwaContext.Provider>;

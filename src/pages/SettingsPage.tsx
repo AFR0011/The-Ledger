@@ -28,7 +28,7 @@ function FeedbackBanner({ message, tone }: { message: string; tone: FeedbackTone
 
 export function SettingsPage() {
   const { data, exportData, replaceData, status, updateAutosave, updateTheme } = useLedger();
-  const { canInstall, installApp, isInstalled, offlineReady } = usePwa();
+  const { canInstall, installApp, isInstalled, offlineReady, resetAppShell } = usePwa();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
   const [pendingImport, setPendingImport] = useState<{
@@ -163,10 +163,22 @@ export function SettingsPage() {
                 Install The Ledger
               </button>
             ) : null}
+            <button
+              className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              onClick={() => {
+                void resetAppShell();
+              }}
+              type="button"
+            >
+              Reset cached shell
+            </button>
             <p className="text-[13px] leading-6 text-[var(--muted)]">
               Offline launch works after the app shell is cached once while online.
             </p>
           </div>
+          <p className="mt-3 text-[13px] leading-6 text-[var(--muted)]">
+            If a deployed update starts returning `404` for an old `/assets/...` file, reset the cached shell and reload this browser tab.
+          </p>
         </article>
 
         <article className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">

@@ -7,6 +7,7 @@ export interface PwaContextValue {
   updateAvailable: boolean;
   installApp: () => Promise<void>;
   applyUpdate: () => Promise<void>;
+  resetAppShell: () => Promise<void>;
   dismissOfflineReady: () => void;
   dismissUpdate: () => void;
 }
