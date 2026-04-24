@@ -3,6 +3,9 @@ import type { EntryType } from '../config/prompts';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type StorageState = 'ready' | 'migrated' | 'unavailable' | 'corrupted';
 export type NextStepConsistency = 'steady' | 'mixed' | 'reset';
+export type CommitmentStatus = 'open' | 'carried' | 'done' | 'dropped';
+export type ReviewQueueKind = 'commitment' | 'next-step' | 'bottleneck' | 'drift' | 'decision';
+export type ThreadSource = 'domain' | 'state' | 'current-thread';
 
 export interface LedgerEntry {
   id: string;
@@ -15,6 +18,19 @@ export interface LedgerEntry {
   stateTags: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LedgerCommitment {
+  id: string;
+  text: string;
+  sourceEntryId: string;
+  sourceEntryLabel: string;
+  sourceEntryDate: string;
+  duePeriod: string;
+  status: CommitmentStatus;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
 }
 
 export interface DraftEntry {
@@ -59,6 +75,7 @@ export interface LedgerSettings {
 export interface LedgerData {
   appVersion: string;
   entries: LedgerEntry[];
+  commitments: LedgerCommitment[];
   drafts: Partial<Record<EntryType, DraftEntry>>;
   currentTrajectory: TrajectorySnapshot;
   insights: InsightSnapshot;
@@ -75,6 +92,29 @@ export interface EntryFilters {
 export interface StorageStatus {
   state: StorageState;
   message: string;
+}
+
+export interface ReviewQueueItem {
+  id: string;
+  kind: ReviewQueueKind;
+  title: string;
+  body: string;
+  sourceEntryId: string;
+  sourceEntryLabel: string;
+  sourceEntryDate: string;
+  commitmentId?: string;
+  actionText?: string;
+}
+
+export interface ThreadSummary {
+  id: string;
+  label: string;
+  source: ThreadSource;
+  entries: LedgerEntry[];
+  count: number;
+  lastEntryDate: string;
+  latestEntryId: string;
+  latestSignal: string;
 }
 
 export interface ImportEnvelope {

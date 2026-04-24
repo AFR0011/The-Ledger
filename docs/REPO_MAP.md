@@ -6,7 +6,7 @@
 - `src/app/`
   - App router plus `LedgerProvider` and `PwaProvider` contexts.
 - `src/pages/`
-  - Route-level screens: home, entry flow, entries, entry detail, settings.
+  - Route-level screens: home, entry flow, entries, entry detail, review, threads, settings.
 - `src/components/`
   - Shared shell pieces and entry-flow UI primitives.
 - `src/config/prompts.ts`
@@ -17,6 +17,8 @@
   - `backup.ts`: strict export/import envelope validation and overwrite-safe parsing
   - `trajectory.ts`: continuity derivation, weekly signal extraction, and re-entry messaging
   - `insights.ts`: deterministic local insight derivation plus entry-level insight-context helpers
+  - `reviewQueue.ts`: derived review queue and commitment-candidate helpers
+  - `threads.ts`: derived thread grouping across tags and current-thread answers
 - `src/pwa.ts`
   - Service worker registration helper shared by the PWA provider.
 - `src/utils/`
@@ -26,8 +28,9 @@
 1. `LedgerProvider` loads the persisted dataset from `localStorage`.
 2. Route pages read and mutate state through provider methods.
 3. Repository helpers normalize and re-hydrate derived trajectory/insight state after writes.
-4. Storage service persists the app-level JSON object under `the-ledger:v1`.
-5. Backup helpers export/import the full dataset via a versioned envelope.
+4. Commitments are persisted in the same app-level JSON object as entries and drafts.
+5. Storage service persists the app-level JSON object under `the-ledger:v1`.
+6. Backup helpers export/import the full dataset via a versioned envelope.
 
 ## Active Surfaces
 - `/`
@@ -40,6 +43,10 @@
   - Detail view with edit/delete actions
 - `/entries/:entryId/edit`
   - Edit flow seeded from an existing entry
+- `/review`
+  - Review queue for commitments, uncommitted next steps, bottlenecks, drift signals, and decisions
+- `/threads`
+  - Thread view grouped by domain tags, state tags, and named current threads
 - `/settings`
   - Theme, autosave, backup import/export, storage status
 

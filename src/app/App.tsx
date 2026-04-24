@@ -4,7 +4,9 @@ import { EntryDetailPage } from '../pages/EntryDetailPage';
 import { EntriesPage } from '../pages/EntriesPage';
 import { EntryFlowPage } from '../pages/EntryFlowPage';
 import { HomePage } from '../pages/HomePage';
+import { ReviewPage } from '../pages/ReviewPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { ThreadsPage } from '../pages/ThreadsPage';
 import { LedgerProvider } from './LedgerProvider';
 import { PwaProvider } from './PwaProvider';
 
@@ -28,6 +30,8 @@ export function App() {
               <Route path="/entries" element={<EntriesPage />} />
               <Route path="/entries/:entryId" element={<EntryDetailPage />} />
               <Route path="/entries/:entryId/edit" element={<EntryFlowPage />} />
+              <Route path="/review" element={<ReviewPage />} />
+              <Route path="/threads" element={<ThreadsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate replace to="/" />} />
             </Route>

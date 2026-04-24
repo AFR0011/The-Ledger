@@ -6,6 +6,8 @@ import { StatusBanner } from './StatusBanner';
 const NAV_ITEMS = [
   { to: '/', label: 'Home' },
   { to: '/entries', label: 'Entries' },
+  { to: '/review', label: 'Review' },
+  { to: '/threads', label: 'Threads' },
   { to: '/settings', label: 'Settings' }
 ] as const;
 

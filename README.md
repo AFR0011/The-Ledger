@@ -11,6 +11,9 @@ The application shell and interaction styling follow the dark-native system docu
 - Entry history, detail, edit, and delete
 - Search and filters across headlines, answers, and tags
 - Continuity card and deterministic local insights
+- Review queue for unresolved next steps, commitments, bottlenecks, drift, and decisions
+- Commitment tracking from finished entries
+- Thread view across domains, states, and named current threads
 - JSON backup export/import with validation
 - Theme controls and local storage status
 - PWA installability and offline app shell

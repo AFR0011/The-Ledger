@@ -20,6 +20,7 @@ The Ledger is a private, local-first, mobile-friendly operating ledger that keep
 - Local draft autosave and resume
 - Searchable entry history and editable detail views
 - Continuity snapshot and deterministic pattern signals
+- Review queue for commitments, next steps, bottlenecks, drift, and decisions
+- Thread view for following repeated domains, states, and named current threads
 - JSON backup export/import
 - Theme settings and offline/PWA shell
-

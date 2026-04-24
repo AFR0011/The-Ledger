@@ -1,5 +1,13 @@
 import { DOMAIN_TAGS, ENTRY_BLUEPRINTS, ENTRY_TYPES, STATE_TAGS, type EntryType } from '../config/prompts';
-import type { DraftEntry, EntryFilters, LedgerData, LedgerEntry, LedgerSettings } from '../types/ledger';
+import type {
+  CommitmentStatus,
+  DraftEntry,
+  EntryFilters,
+  LedgerCommitment,
+  LedgerData,
+  LedgerEntry,
+  LedgerSettings
+} from '../types/ledger';
 import { formatPeriodLabel, toIsoDate } from '../utils/date';
 import { normalizeForSearch, summarizeText } from '../utils/text';
 import { createEmptyInsights, deriveInsights } from './insights';
@@ -77,6 +85,35 @@ function normalizeEntry(value: unknown): LedgerEntry | null {
   };
 }
 
+function normalizeCommitment(value: unknown): LedgerCommitment | null {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.text !== 'string') {
+    return null;
+  }
+
+  const normalizedText = value.text.trim();
+  if (!normalizedText) {
+    return null;
+  }
+
+  const status: CommitmentStatus =
+    value.status === 'carried' || value.status === 'done' || value.status === 'dropped' ? value.status : 'open';
+  const createdAt = typeof value.createdAt === 'string' ? value.createdAt : new Date().toISOString();
+  const updatedAt = typeof value.updatedAt === 'string' ? value.updatedAt : createdAt;
+
+  return {
+    id: value.id,
+    text: normalizedText,
+    sourceEntryId: typeof value.sourceEntryId === 'string' ? value.sourceEntryId : '',
+    sourceEntryLabel: typeof value.sourceEntryLabel === 'string' ? value.sourceEntryLabel : 'Unknown entry',
+    sourceEntryDate: typeof value.sourceEntryDate === 'string' ? value.sourceEntryDate : '',
+    duePeriod: typeof value.duePeriod === 'string' ? value.duePeriod.trim() : '',
+    status,
+    createdAt,
+    updatedAt,
+    resolvedAt: typeof value.resolvedAt === 'string' ? value.resolvedAt : undefined
+  };
+}
+
 function normalizeDraft(value: unknown, type: EntryType): DraftEntry | null {
   if (!isRecord(value)) {
     return null;
@@ -129,6 +166,7 @@ export function createDefaultLedgerData(): LedgerData {
   return {
     appVersion: APP_DATA_VERSION,
     entries: [],
+    commitments: [],
     drafts: {},
     currentTrajectory: createEmptyTrajectory(),
     insights: createEmptyInsights(),
@@ -148,6 +186,7 @@ export function hydrateDerivedState(data: LedgerData): LedgerData {
     ...data,
     appVersion: APP_DATA_VERSION,
     entries,
+    commitments: [...data.commitments].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     currentTrajectory,
     insights
   };
@@ -160,6 +199,11 @@ export function normalizeLedgerData(value: unknown): LedgerData {
 
   const entries = Array.isArray(value.entries)
     ? value.entries.map((entry) => normalizeEntry(entry)).filter((entry): entry is LedgerEntry => entry !== null)
+    : [];
+  const commitments = Array.isArray(value.commitments)
+    ? value.commitments
+        .map((commitment) => normalizeCommitment(commitment))
+        .filter((commitment): commitment is LedgerCommitment => commitment !== null)
     : [];
 
   const drafts = ENTRY_TYPES.reduce<LedgerData['drafts']>((nextDrafts, type) => {
@@ -174,6 +218,7 @@ export function normalizeLedgerData(value: unknown): LedgerData {
   return hydrateDerivedState({
     appVersion: APP_DATA_VERSION,
     entries,
+    commitments,
     drafts,
     currentTrajectory: createEmptyTrajectory(),
     insights: createEmptyInsights(),
@@ -264,7 +309,84 @@ export function commitDraft(
 export function deleteEntry(data: LedgerData, entryId: string): LedgerData {
   return hydrateDerivedState({
     ...data,
-    entries: data.entries.filter((entry) => entry.id !== entryId)
+    entries: data.entries.filter((entry) => entry.id !== entryId),
+    commitments: data.commitments.filter((commitment) => commitment.sourceEntryId !== entryId)
+  });
+}
+
+export function createCommitment(
+  data: LedgerData,
+  sourceEntryId: string,
+  text: string,
+  duePeriod = '',
+  now = new Date()
+): { data: LedgerData; commitment: LedgerCommitment } {
+  const sourceEntry = getEntryById(data, sourceEntryId);
+  if (!sourceEntry) {
+    throw new Error('Commitment could not be created because the source entry does not exist.');
+  }
+
+  const normalizedText = text.trim();
+  if (!normalizedText) {
+    throw new Error('Commitment text is required.');
+  }
+
+  const existingCommitment = data.commitments.find(
+    (commitment) =>
+      commitment.sourceEntryId === sourceEntryId &&
+      commitment.text.toLocaleLowerCase() === normalizedText.toLocaleLowerCase() &&
+      commitment.status !== 'dropped'
+  );
+
+  if (existingCommitment) {
+    return {
+      data,
+      commitment: existingCommitment
+    };
+  }
+
+  const timestamp = now.toISOString();
+  const commitment: LedgerCommitment = {
+    id: crypto.randomUUID(),
+    text: normalizedText,
+    sourceEntryId,
+    sourceEntryLabel: sourceEntry.periodLabel,
+    sourceEntryDate: sourceEntry.date,
+    duePeriod: duePeriod.trim(),
+    status: 'open',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+
+  return {
+    data: hydrateDerivedState({
+      ...data,
+      commitments: [commitment, ...data.commitments]
+    }),
+    commitment
+  };
+}
+
+export function updateCommitmentStatus(
+  data: LedgerData,
+  commitmentId: string,
+  status: CommitmentStatus,
+  now = new Date()
+): LedgerData {
+  const timestamp = now.toISOString();
+
+  return hydrateDerivedState({
+    ...data,
+    commitments: data.commitments.map((commitment) =>
+      commitment.id === commitmentId
+        ? {
+            ...commitment,
+            status,
+            updatedAt: timestamp,
+            resolvedAt: status === 'done' || status === 'dropped' ? timestamp : undefined
+          }
+        : commitment
+    )
   });
 }
 

@@ -1,8 +1,8 @@
 # Run Protocol
 
 ## Environment
-- Host `npm` is not available.
-- Use Docker with the `node:20` image for install, dev, test, and build commands.
+- Prefer Docker with the `node:20` image for install, dev, test, and build commands.
+- If Docker Desktop is not running and PowerShell blocks `npm.ps1`, use `npm.cmd` as the host fallback.
 
 ## Commands
 
@@ -49,11 +49,21 @@ docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run test"
 docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run build"
 ```
 
+### Host fallback
+```powershell
+npm.cmd install
+npm.cmd run lint
+npm.cmd run test
+npm.cmd run build
+```
+
 ## Manual Check List
 - Start, resume, and finish one daily, one weekly, and one monthly entry.
 - Refresh during an in-progress entry and confirm draft resume.
 - Edit and delete a completed entry.
 - Search and filter by text, type, domain tag, and state tag.
+- Open Review, track a next step as a commitment, then mark it done, carried, and dropped across separate commitments.
+- Open Threads and confirm repeated domain tags, state tags, and current-thread answers group the expected entries.
 - Export a backup, then import it back into the app.
 - Toggle theme and autosave settings.
 - Confirm the header or Settings surface exposes an install action once the browser allows it.

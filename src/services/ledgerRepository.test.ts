@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { DraftEntry } from '../types/ledger';
-import { commitDraft, createDefaultLedgerData, createDraft, filterEntries, saveDraft } from './ledgerRepository';
+import {
+  commitDraft,
+  createCommitment,
+  createDefaultLedgerData,
+  createDraft,
+  filterEntries,
+  saveDraft,
+  updateCommitmentStatus
+} from './ledgerRepository';
 
 function answerDraft(draft: DraftEntry, answers: Record<string, string>): DraftEntry {
   return {
@@ -57,5 +65,38 @@ describe('ledgerRepository', () => {
     expect(visible).toHaveLength(1);
     expect(visible[0].stateTags).toContain('win');
   });
-});
 
+  it('creates and resolves commitments from source entries', () => {
+    const draft = answerDraft(createDraft('daily'), {
+      supposed_to_matter: 'Finish the review surface',
+      actually_did: 'Built commitment tracking',
+      evidence_of_progress: 'Repository functions are covered',
+      drift_or_fragment: 'None',
+      operating_state: 'Clear',
+      current_thread: 'Review queue',
+      next_right_step: 'Verify the commitment controls'
+    });
+
+    const committed = commitDraft(createDefaultLedgerData(), 'daily', draft);
+    const sourceEntry = committed.entry;
+    const withCommitment = createCommitment(
+      committed.data,
+      sourceEntry.id,
+      'Verify the commitment controls',
+      'Tomorrow',
+      new Date('2026-04-24T10:00:00.000Z')
+    );
+    const resolved = updateCommitmentStatus(
+      withCommitment.data,
+      withCommitment.commitment.id,
+      'done',
+      new Date('2026-04-24T11:00:00.000Z')
+    );
+
+    expect(withCommitment.data.commitments).toHaveLength(1);
+    expect(withCommitment.commitment.sourceEntryId).toBe(sourceEntry.id);
+    expect(withCommitment.commitment.duePeriod).toBe('Tomorrow');
+    expect(resolved.commitments[0].status).toBe('done');
+    expect(resolved.commitments[0].resolvedAt).toBe('2026-04-24T11:00:00.000Z');
+  });
+});

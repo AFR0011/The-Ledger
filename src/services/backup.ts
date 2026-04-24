@@ -49,6 +49,10 @@ function assertStrictLedgerData(rawData: LedgerData, normalizedData: LedgerData)
   if (rawDraftKeys.length !== normalizedDraftCount) {
     throw new Error('Import failed because one or more drafts are invalid or incomplete.');
   }
+
+  if (Array.isArray(rawData.commitments) && rawData.commitments.length !== normalizedData.commitments.length) {
+    throw new Error('Import failed because one or more commitments are invalid or incomplete.');
+  }
 }
 
 export function createBackupEnvelope(data: LedgerData): ImportEnvelope {

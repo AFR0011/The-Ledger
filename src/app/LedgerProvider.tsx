@@ -8,15 +8,17 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import type { DraftEntry, LedgerData, LedgerEntry, StorageStatus, ThemeMode } from '../types/ledger';
+import type { CommitmentStatus, DraftEntry, LedgerCommitment, LedgerData, LedgerEntry, StorageStatus, ThemeMode } from '../types/ledger';
 import { exportLedgerData } from '../services/backup';
 import {
   commitDraft,
+  createCommitment,
   createDraft,
   deleteEntry,
   getEntryById,
   saveDraft as persistDraftState,
   replaceLedgerData,
+  updateCommitmentStatus,
   updateSettings
 } from '../services/ledgerRepository';
 import { loadLedgerData, saveLedgerData } from '../services/ledgerStorage';
@@ -31,6 +33,8 @@ interface LedgerContextValue {
   discardDraft: (type: DraftEntry['type']) => void;
   commitDraft: (type: DraftEntry['type'], draft: DraftEntry) => LedgerEntry;
   deleteEntry: (entryId: string) => void;
+  createCommitment: (entryId: string, text: string, duePeriod?: string) => LedgerCommitment;
+  updateCommitmentStatus: (commitmentId: string, status: CommitmentStatus) => void;
   updateTheme: (theme: ThemeMode) => void;
   updateAutosave: (autosave: boolean) => void;
   exportData: () => string;
@@ -121,6 +125,21 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const deleteEntryById = useCallback((entryId: string) => {
     persist((current) => deleteEntry(current, entryId));
   }, [persist]);
+  const createCommitmentFromEntry = useCallback((entryId: string, text: string, duePeriod?: string) => {
+    let nextCommitment: LedgerCommitment | undefined;
+    persist((current) => {
+      const committed = createCommitment(current, entryId, text, duePeriod);
+      nextCommitment = committed.commitment;
+      return committed.data;
+    });
+    if (!nextCommitment) {
+      throw new Error('Commitment could not be saved.');
+    }
+    return nextCommitment;
+  }, [persist]);
+  const updateCommitmentById = useCallback((commitmentId: string, commitmentStatus: CommitmentStatus) => {
+    persist((current) => updateCommitmentStatus(current, commitmentId, commitmentStatus));
+  }, [persist]);
   const updateTheme = useCallback((theme: ThemeMode) => {
     persist((current) => updateSettings(current, { theme }));
   }, [persist]);
@@ -142,6 +161,8 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       discardDraft: discardDraftForType,
       commitDraft: commitDraftForType,
       deleteEntry: deleteEntryById,
+      createCommitment: createCommitmentFromEntry,
+      updateCommitmentStatus: updateCommitmentById,
       updateTheme,
       updateAutosave,
       exportData: () => exportLedgerData(data),
@@ -149,6 +170,7 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
     }),
     [
       commitDraftForType,
+      createCommitmentFromEntry,
       createDraftForType,
       data,
       deleteEntryById,
@@ -158,6 +180,7 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       resolvedTheme,
       saveDraft,
       status,
+      updateCommitmentById,
       updateAutosave,
       updateTheme
     ]

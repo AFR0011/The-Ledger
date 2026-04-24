@@ -5,13 +5,15 @@ import { EmptyState } from '../components/common/EmptyState';
 import { TagPill } from '../components/common/TagPill';
 import { ENTRY_BLUEPRINTS } from '../config/prompts';
 import { describeEntryInsightContext } from '../services/insights';
+import { getEntryCommitmentCandidate } from '../services/reviewQueue';
 import { formatDateTime, formatDisplayDate } from '../utils/date';
 
 export function EntryDetailPage() {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { data, deleteEntry, getEntry } = useLedger();
+  const { createCommitment, data, deleteEntry, getEntry } = useLedger();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [commitmentFeedback, setCommitmentFeedback] = useState('');
   const entry = entryId ? getEntry(entryId) : undefined;
 
   if (!entry) {
@@ -33,6 +35,13 @@ export function EntryDetailPage() {
 
   const prompts = ENTRY_BLUEPRINTS[entry.type].prompts;
   const insightContext = describeEntryInsightContext(entry, data.currentTrajectory);
+  const commitmentCandidate = getEntryCommitmentCandidate(entry);
+  const trackedCommitment = data.commitments.find(
+    (commitment) =>
+      commitment.sourceEntryId === entry.id &&
+      commitment.text.toLocaleLowerCase() === commitmentCandidate.toLocaleLowerCase() &&
+      commitment.status !== 'dropped'
+  );
 
   return (
     <main className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -171,6 +180,38 @@ export function EntryDetailPage() {
                 <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">How this entry contributes</p>
                 <p className="mt-1">This entry is not currently driving a highlighted win, bottleneck, drift, or continuity anchor.</p>
               </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Commitment</p>
+          <div className="mt-4 space-y-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+            {commitmentCandidate ? (
+              <>
+                <p>{commitmentCandidate}</p>
+                {trackedCommitment ? (
+                  <TagPill tone="accent">{trackedCommitment.status}</TagPill>
+                ) : (
+                  <button
+                    className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+                    onClick={() => {
+                      createCommitment(entry.id, commitmentCandidate);
+                      setCommitmentFeedback('Commitment tracked.');
+                    }}
+                    type="button"
+                  >
+                    Track this step
+                  </button>
+                )}
+                {commitmentFeedback ? (
+                  <p aria-live="polite" className="text-[13px] text-[var(--accent-bright)]">
+                    {commitmentFeedback}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p>No next step is available to track from this entry.</p>
             )}
           </div>
         </section>
