@@ -11,6 +11,50 @@ function ready(message: string): StorageStatus {
   };
 }
 
+function checkStorageQuota(): Promise<{ hasQuota: boolean; error?: string }> {
+  if (typeof window === 'undefined' || !window.navigator?.storage?.estimate) {
+    // Storage API not available, assume we have quota
+    return Promise.resolve({ hasQuota: true });
+  }
+
+  return window.navigator.storage
+    .estimate()
+    .then((estimate) => {
+      // Warn if we're within 10% of the quota
+      const usageRatio = (estimate.usage ?? 0) / (estimate.quota ?? 1);
+      if (usageRatio > 0.9) {
+        return {
+          hasQuota: false,
+          error: `Storage nearly full: ${(usageRatio * 100).toFixed(0)}% used. Export a backup soon.`
+        };
+      }
+      return { hasQuota: true };
+    })
+    .catch(() => {
+      // If quota checking fails, assume we're fine
+      return { hasQuota: true };
+    });
+}
+
+function testStorageWrite(): { success: boolean; error?: string } {
+  try {
+    if (typeof window === 'undefined') {
+      return { success: false, error: 'Storage unavailable outside browser' };
+    }
+    // Try writing a small test entry
+    const testKey = '__storage_test__';
+    const testValue = 'test';
+    window.localStorage.setItem(testKey, testValue);
+    window.localStorage.removeItem(testKey);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Local storage is blocked or unavailable. Changes will not persist.'
+    };
+  }
+}
+
 function clearStorageKey(key: string) {
   try {
     window.localStorage.removeItem(key);
@@ -106,13 +150,31 @@ export function saveLedgerData(data: LedgerData): StorageStatus {
     };
   }
 
+  // Test storage availability first
+  const writeTest = testStorageWrite();
+  if (!writeTest.success) {
+    return {
+      state: 'unavailable',
+      message: writeTest.error ?? 'Storage unavailable'
+    };
+  }
+
+  // Check for quota issues (non-blocking warning)
+  void checkStorageQuota().then((quotaResult) => {
+    if (!quotaResult.hasQuota && typeof window !== 'undefined' && quotaResult.error) {
+      console.warn(quotaResult.error);
+    }
+  });
+
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return ready('Saved locally.');
-  } catch {
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'The Ledger could not write to local storage.';
     return {
       state: 'unavailable',
-      message: 'The Ledger could not write to local storage. Changes are in memory only.'
+      message: `${errorMessage} Changes are in memory only. Export a backup immediately.`
     };
   }
 }

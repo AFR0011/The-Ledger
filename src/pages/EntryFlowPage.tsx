@@ -15,13 +15,13 @@ function toggleValue(values: string[], target: string) {
 export function EntryFlowPage() {
   const { entryId, type: typeParam } = useParams();
   const navigate = useNavigate();
-  const { commitDraft, createDraftForType, data, discardDraft, getEntry, saveDraft } = useLedger();
+  const { commitDraft, createDraftForType, data, discardDraft, getEntry, saveDraft, status } = useLedger();
   const seedEntry = entryId ? getEntry(entryId) : undefined;
   const entryType = seedEntry?.type ?? (isEntryType(typeParam) ? typeParam : undefined);
   const routeKey = `${entryType ?? 'unknown'}:${entryId ?? 'new'}`;
   const draftStoreRef = useRef(data.drafts);
   const [draft, setDraft] = useState<DraftEntry | null>(null);
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
   const [error, setError] = useState('');
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
@@ -51,7 +51,7 @@ export function EntryFlowPage() {
   }, [createDraftForType, entryId, entryType, routeKey, seedEntry]);
 
   useEffect(() => {
-    setFeedback('');
+    setFeedback(null);
     setError('');
     setConfirmingDiscard(false);
   }, [routeKey]);
@@ -63,11 +63,19 @@ export function EntryFlowPage() {
 
     const timeoutId = window.setTimeout(() => {
       saveDraft(entryType, draft);
-      setFeedback('Draft autosaved locally.');
+      const isStorageUnavailable = status.state === 'unavailable' || status.state === 'corrupted';
+      if (isStorageUnavailable) {
+        setFeedback({
+          message: 'Autosave failed: ' + status.message,
+          tone: 'error'
+        });
+      } else {
+        setFeedback({ message: 'Draft autosaved locally.', tone: 'success' });
+      }
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [data.settings.autosave, draft, entryType, saveDraft]);
+  }, [data.settings.autosave, draft, entryType, saveDraft, status]);
 
   if (!entryType) {
     return (
@@ -119,7 +127,7 @@ export function EntryFlowPage() {
 
   const saveNow = () => {
     saveDraft(entryType, draft);
-    setFeedback('Draft saved locally.');
+    setFeedback({ message: 'Draft saved locally.', tone: 'success' });
   };
 
   const discard = () => {
@@ -273,10 +281,14 @@ export function EntryFlowPage() {
       {feedback ? (
         <section
           aria-live="polite"
-          className="rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[13px] text-[var(--accent-bright)]"
-          role="status"
+          className={`rounded-xl border px-4 py-3 text-[13px] ${
+            feedback.tone === 'error'
+              ? 'border-[var(--border-subtle)] bg-[var(--danger-soft)] text-[var(--danger-ink)]'
+              : 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-bright)]'
+          }`}
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
         >
-          {feedback}
+          {feedback.message}
         </section>
       ) : null}
 
