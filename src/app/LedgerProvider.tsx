@@ -105,15 +105,11 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   }, [resolvedTheme]);
 
   const persist = useCallback((producer: (current: LedgerData) => LedgerData) => {
-    let nextState: LedgerData | undefined;
-    setData((current) => {
-      nextState = producer(current);
-      if (nextState) {
-        setStatus(saveLedgerData(nextState));
-      }
-      return nextState ?? current;
-    });
-    return nextState ?? dataRef.current;
+    const nextState = producer(dataRef.current);
+    dataRef.current = nextState;
+    setStatus(saveLedgerData(nextState));
+    setData(nextState);
+    return nextState;
   }, []);
 
   const getEntry = useCallback((entryId: string) => getEntryById(data, entryId), [data]);

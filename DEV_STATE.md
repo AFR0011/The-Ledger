@@ -1,22 +1,28 @@
 # The Ledger - Development State
 
-## Current Status: READY FOR BATCH 001
+## Current Status: EXECUTING FINISH-ENTRY PERSISTENCE REPAIR
 
-### Phase 3 Progress: 0% complete
+### Phase 3 Progress: repair batch in progress
 
 | Task | Status |
 |------|--------|
-| Batch 001: Error handling improvements | NOT STARTED |
+| Finish-entry persistence repair | IN PROGRESS |
+| Batch 001: remaining error handling improvements | NOT STARTED |
 
 ### Files Changed This Session
-- None yet
+- `BLUEPRINT.md` — accepted bounded repair batch
+- `DEV_STATE.md` — active phase and scope
 
 ### Storage Status
 - Local storage: **READY**
 - Migration from legacy storage: **Not needed** (no legacy data detected)
 
 ### Pending Tasks
-1. Batch 001 - Error handling improvements
+1. Finish-entry persistence repair
+   - reproduce deferred React updater failure
+   - make provider mutations return synchronously
+   - verify finish-entry persistence in tests and Brave
+2. Batch 001 - remaining error handling improvements
    - localStorage quota detection
    - Autosave failure feedback
    - Import/export status feedback
@@ -27,6 +33,6 @@
 - Build: `npm run build` - not yet run this session
 
 ### Next Steps
-1. Implement Batch 001
-2. Run tests to verify
-3. Update QA_REPORT.md with test results
+1. Add the finish-entry regression test
+2. Implement the provider persistence repair
+3. Run the verification ladder and update `QA_REPORT.md`

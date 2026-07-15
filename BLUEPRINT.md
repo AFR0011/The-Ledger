@@ -24,3 +24,13 @@ The Ledger is the private authoring surface for daily journals and monthly revie
 ## Verification
 
 Run lint, unit/component tests, and production build. Browser smoke should cover folder permission, dry run, managed-region republishing, conflict handling, downloads, and handoff previews.
+
+## Active repair batch — finish-entry persistence
+
+- Objective: finishing an entry must synchronously return the committed entry and persist it before navigation.
+- Intended files: `src/app/LedgerProvider.tsx`, a focused provider regression test, and workflow evidence documents.
+- Allowed adjacent files: test setup only if the regression cannot be expressed with the existing harness.
+- Out of scope: prompt changes, storage schema changes, publishing, handoffs, and general quota UX.
+- Acceptance: `commitDraft` no longer throws because React deferred a state updater; the entry is present in provider state and `localStorage`; back-to-back provider mutations use the latest state.
+- Verification: focused regression test, full tests, lint, production build, and Brave finish-entry smoke.
+- Rollback: restore the provider mutation helper and remove the new regression test.
