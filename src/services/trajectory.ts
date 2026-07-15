@@ -1,5 +1,5 @@
 import type { LedgerEntry, TrajectorySnapshot } from '../types/ledger';
-import { differenceInCalendarDays } from '../utils/date';
+import { differenceInCalendarDays, parseLocalDate } from '../utils/date';
 import { extractList, pickFirstMeaningfulLine } from '../utils/text';
 
 export function createEmptyTrajectory(): TrajectorySnapshot {
@@ -59,20 +59,24 @@ export function deriveTrajectory(entries: LedgerEntry[], now = new Date()): Traj
   }
 
   const prioritySource =
-    latestDaily?.answers.supposed_to_matter ??
-    latestWeekly?.answers.next_week_about ??
-    latestMonthly?.answers.next_month_about ??
+    latestDaily?.answers.meaningful_progress ||
+    latestDaily?.answers.supposed_to_matter ||
+    latestWeekly?.answers.next_week_about ||
+    latestMonthly?.answers.next_month_direction ||
+    latestMonthly?.answers.next_month_about ||
     latestEntry.headline;
 
   const nextStepSource =
-    latestDaily?.answers.next_right_step ??
-    latestWeekly?.answers.next_week_about ??
-    latestMonthly?.answers.next_month_about ??
+    latestDaily?.answers.tomorrow_attention ||
+    latestDaily?.answers.next_right_step ||
+    latestWeekly?.answers.next_week_about ||
+    latestMonthly?.answers.next_month_direction ||
+    latestMonthly?.answers.next_month_about ||
     latestEntry.headline;
 
-  const currentThreadSource = latestDaily?.answers.current_thread ?? latestEntry.headline;
-  const weeklySignalSource = latestWeekly?.answers.next_week_about ?? latestWeekly?.answers.where_now ?? '';
-  const missedDays = differenceInCalendarDays(now, new Date(latestEntry.date));
+  const currentThreadSource = latestDaily?.answers.day_story || latestDaily?.answers.current_thread || latestEntry.headline;
+  const weeklySignalSource = latestWeekly?.answers.next_week_about || latestWeekly?.answers.where_now || '';
+  const missedDays = differenceInCalendarDays(now, parseLocalDate(latestEntry.date));
   const nextStep = pickFirstMeaningfulLine(nextStepSource);
   const weeklySignal = pickFirstMeaningfulLine(weeklySignalSource);
 

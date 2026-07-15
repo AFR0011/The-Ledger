@@ -3,7 +3,7 @@ import { ENTRY_TYPES } from '../config/prompts';
 import { normalizeLedgerData } from './ledgerRepository';
 
 const BACKUP_FORMAT = 'the-ledger-backup';
-const BACKUP_VERSION = 1 as const;
+const BACKUP_VERSION = 2 as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -81,7 +81,7 @@ export function parseLedgerImport(rawText: string): ImportEnvelope {
     throw new Error('Import failed because this file is not a The Ledger backup.');
   }
 
-  if (parsed.version !== BACKUP_VERSION) {
+  if (parsed.version !== 1 && parsed.version !== BACKUP_VERSION) {
     throw new Error(`Import failed because backup version ${String(parsed.version)} is not supported.`);
   }
 

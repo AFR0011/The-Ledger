@@ -1,58 +1,17 @@
 # Repo Map
 
-## Runtime Shape
-- `docs/DESIGN.md`
-  - visual source of truth for the app shell, surfaces, type system, and accent usage
-- `src/app/`
-  - App router plus `LedgerProvider` and `PwaProvider` contexts.
-- `src/pages/`
-  - Route-level screens: home, entry flow, entries, entry detail, review, threads, settings.
-- `src/components/`
-  - Shared shell pieces and entry-flow UI primitives.
-- `src/config/prompts.ts`
-  - Entry definitions, prompt wording, and tag vocabularies.
-- `src/services/`
-  - `ledgerRepository.ts`: pure CRUD, filtering, normalization, derived state hydration
-  - `ledgerStorage.ts`: browser storage load/save, corruption cleanup, and legacy key migration
-  - `backup.ts`: strict export/import envelope validation and overwrite-safe parsing
-  - `trajectory.ts`: continuity derivation, weekly signal extraction, and re-entry messaging
-  - `insights.ts`: deterministic local insight derivation plus entry-level insight-context helpers
-  - `reviewQueue.ts`: derived review queue and commitment-candidate helpers
-  - `threads.ts`: derived thread grouping across tags and current-thread answers
-- `src/pwa.ts`
-  - Service worker registration helper shared by the PWA provider.
-- `src/utils/`
-  - Date formatting and text normalization helpers.
+- `src/config/prompts.ts`: versioned prompt catalog and LifeOS tag vocabulary
+- `src/types/ledger.ts`: schema v2 entries, publication states, handoff candidates, settings
+- `src/services/ledgerRepository.ts`: normalization, migrations, uniqueness, and mutations
+- `src/services/ledgerStorage.ts`: local persistence and legacy-key migration
+- `src/services/backup.ts`: v1/v2 backup compatibility
+- `src/services/markdownExport.ts`: canonical paths, YAML, managed regions, and merge safety
+- `src/services/lifeOsFolder.ts`: File System Access API, IndexedDB handle, direction reads, dry run, and publishing
+- `src/services/downloads.ts`: Markdown and ZIP fallback
+- `src/services/handoff.ts`: `lifeos-handoff/v1` validation and base64url transport
+- `src/pages/EntryFlowPage.tsx`: daily/monthly authoring and legacy weekly editing
+- `src/pages/EntryDetailPage.tsx`: publish/download actions and editable handoff proposals
+- `src/pages/SettingsPage.tsx`: integration URLs, folder connection, dry run, bulk export, and backups
+- `src/pages/ReviewPage.tsx`: proposal inbox and read-only legacy commitments
 
-## Primary Data Flow
-1. `LedgerProvider` loads the persisted dataset from `localStorage`.
-2. Route pages read and mutate state through provider methods.
-3. Repository helpers normalize and re-hydrate derived trajectory/insight state after writes.
-4. Commitments are persisted in the same app-level JSON object as entries and drafts.
-5. Storage service persists the app-level JSON object under `the-ledger:v1`.
-6. Backup helpers export/import the full dataset via a versioned envelope.
-
-## Active Surfaces
-- `/`
-  - Quick start, resume drafts, trajectory, local insights, recent entries
-- `/entry/:type`
-  - New or resumed daily/weekly/monthly flow
-- `/entries`
-  - Search/filter list view
-- `/entries/:entryId`
-  - Detail view with edit/delete actions
-- `/entries/:entryId/edit`
-  - Edit flow seeded from an existing entry
-- `/review`
-  - Review queue for commitments, uncommitted next steps, bottlenecks, drift signals, and decisions
-- `/threads`
-  - Thread view grouped by domain tags, state tags, and named current threads
-- `/settings`
-  - Theme, autosave, backup import/export, storage status
-
-## Verification-Relevant Files
-- `package.json`
-- `vite.config.ts`
-- `vitest.config.ts`
-- `eslint.config.js`
-- `src/services/*.test.ts`
+Data flows from local edits to local persistence first. Publishing or handoff happens only through an explicit user action afterward.

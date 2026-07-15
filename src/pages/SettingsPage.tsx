@@ -1,9 +1,17 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useLedger } from '../app/LedgerProvider';
 import { usePwa } from '../app/usePwa';
 import type { ImportEnvelope } from '../types/ledger';
 import { parseLedgerImport } from '../services/backup';
 import { formatDateTime } from '../utils/date';
+import { downloadEntriesZip } from '../services/downloads';
+import {
+  connectLifeOsFolder,
+  disconnectLifeOsFolder,
+  loadLifeOsFolder,
+  publishAllToLifeOs,
+  supportsDirectoryPicker
+} from '../services/lifeOsFolder';
 
 const THEMES = ['system', 'light', 'dark'] as const;
 
@@ -27,7 +35,7 @@ function FeedbackBanner({ message, tone }: { message: string; tone: FeedbackTone
 }
 
 export function SettingsPage() {
-  const { data, exportData, replaceData, status, updateAutosave, updateTheme } = useLedger();
+  const { data, exportData, replaceData, status, updateAutosave, updateIntegrationUrls, updatePublication, updateTheme } = useLedger();
   const { canInstall, installApp, isInstalled, offlineReady, resetAppShell } = usePwa();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
@@ -35,6 +43,45 @@ export function SettingsPage() {
     fileName: string;
     envelope: ImportEnvelope;
   } | null>(null);
+  const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
+  const [contextOsUrl, setContextOsUrl] = useState(data.settings.contextOsUrl);
+  const [socialOsUrl, setSocialOsUrl] = useState(data.settings.socialOsUrl);
+
+  useEffect(() => {
+    void loadLifeOsFolder().then(setFolder).catch(() => setFolder(null));
+  }, []);
+
+  const connectFolder = async () => {
+    try {
+      const handle = await connectLifeOsFolder();
+      setFolder(handle);
+      setFeedback({ message: `Connected ${handle.name}. The folder handle stays on this device and is excluded from backups.`, tone: 'success' });
+    } catch (error) {
+      setFeedback({ message: error instanceof Error ? error.message : 'Could not connect LifeOS.', tone: 'error' });
+    }
+  };
+
+  const runBulkPublish = async (dryRun: boolean) => {
+    if (!folder) {
+      setFeedback({ message: 'Connect the LifeOS vault before running folder publishing.', tone: 'error' });
+      return;
+    }
+    const outcomes = await publishAllToLifeOs(folder, data.entries, dryRun);
+    if (!dryRun) {
+      for (const outcome of outcomes) {
+        const entry = data.entries.find((item) => item.id === outcome.entryId);
+        if (!entry) continue;
+        updatePublication(entry.id, outcome.status === 'created' || outcome.status === 'updated'
+          ? { status: 'synced', path: outcome.path, lastPublishedAt: new Date().toISOString(), publishedSourceUpdatedAt: entry.updatedAt }
+          : { status: 'conflict', path: outcome.path, message: outcome.message });
+      }
+    }
+    const counts = outcomes.reduce<Record<string, number>>((result, outcome) => ({ ...result, [outcome.status]: (result[outcome.status] ?? 0) + 1 }), {});
+    setFeedback({
+      message: `${dryRun ? 'Dry run' : 'Bulk publish'}: ${counts.created ?? 0} created, ${counts.updated ?? 0} updated, ${counts.conflict ?? 0} conflicts, ${counts.failed ?? 0} failed.`,
+      tone: counts.failed || counts.conflict ? 'error' : 'success'
+    });
+  };
 
   const handleExport = () => {
     const blob = new Blob([exportData()], { type: 'application/json' });
@@ -137,6 +184,32 @@ export function SettingsPage() {
               type="checkbox"
             />
           </label>
+        </article>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">LifeOS publishing</h3>
+          <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">
+            Publish daily journals and monthly reviews directly, or download a ZIP with the same vault-relative paths.
+          </p>
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] p-4 text-[14px] text-[var(--text-secondary)]">
+            {folder ? `Connected folder: ${folder.name}` : supportsDirectoryPicker() ? 'No LifeOS folder connected.' : 'Folder access is unavailable in this browser; use ZIP downloads.'}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {supportsDirectoryPicker() ? <button className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => void connectFolder()} type="button">{folder ? 'Reconnect folder' : 'Connect LifeOS'}</button> : null}
+            {folder ? <><button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={() => void runBulkPublish(true)} type="button">Dry run</button><button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={() => void runBulkPublish(false)} type="button">Publish eligible history</button></> : null}
+            <button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={() => downloadEntriesZip(data.entries)} type="button">Download history ZIP</button>
+            {folder ? <button className="min-h-11 rounded-md border border-transparent px-4 py-2.5 text-[13px] text-[var(--muted)]" onClick={() => { void disconnectLifeOsFolder(); setFolder(null); }} type="button">Disconnect</button> : null}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">System links</h3>
+          <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">These URLs receive approval-gated handoffs. No credentials or journal content are stored in settings.</p>
+          <label className="mt-4 block text-[12px] text-[var(--muted)]">ContextOS URL<input className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-3 text-[14px] text-[var(--ink)]" onChange={(event) => setContextOsUrl(event.target.value)} value={contextOsUrl} /></label>
+          <label className="mt-4 block text-[12px] text-[var(--muted)]">SocialOS URL<input className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-3 text-[14px] text-[var(--ink)]" onChange={(event) => setSocialOsUrl(event.target.value)} value={socialOsUrl} /></label>
+          <button className="mt-4 min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => { updateIntegrationUrls(contextOsUrl, socialOsUrl); setFeedback({ message: 'Integration URLs saved.', tone: 'success' }); }} type="button">Save system links</button>
         </article>
       </section>
 

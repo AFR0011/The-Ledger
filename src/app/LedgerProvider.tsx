@@ -8,17 +8,34 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import type { CommitmentStatus, DraftEntry, LedgerCommitment, LedgerData, LedgerEntry, StorageStatus, ThemeMode } from '../types/ledger';
+import type {
+  CommitmentStatus,
+  DraftEntry,
+  HandoffCandidate,
+  HandoffKind,
+  HandoffStatus,
+  HandoffTarget,
+  LedgerCommitment,
+  LedgerData,
+  LedgerEntry,
+  PublicationRecord,
+  StorageStatus,
+  ThemeMode
+} from '../types/ledger';
 import { exportLedgerData } from '../services/backup';
 import {
   commitDraft,
   createCommitment,
+  createHandoffCandidate,
   createDraft,
   deleteEntry,
   getEntryById,
+  getCanonicalEntryForPeriod,
   saveDraft as persistDraftState,
   replaceLedgerData,
   updateCommitmentStatus,
+  updateEntryPublication,
+  updateHandoffStatus,
   updateSettings
 } from '../services/ledgerRepository';
 import { loadLedgerData, saveLedgerData } from '../services/ledgerStorage';
@@ -37,6 +54,10 @@ interface LedgerContextValue {
   updateCommitmentStatus: (commitmentId: string, status: CommitmentStatus) => void;
   updateTheme: (theme: ThemeMode) => void;
   updateAutosave: (autosave: boolean) => void;
+  updateIntegrationUrls: (contextOsUrl: string, socialOsUrl: string) => void;
+  createHandoff: (entryId: string, input: { target: HandoffTarget; kind: HandoffKind; title: string; body: string; area?: string }) => HandoffCandidate;
+  updateHandoffStatus: (id: string, status: HandoffStatus) => void;
+  updatePublication: (entryId: string, publication: PublicationRecord) => void;
   exportData: () => string;
   replaceData: (nextData: LedgerData) => void;
 }
@@ -96,7 +117,10 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getEntry = useCallback((entryId: string) => getEntryById(data, entryId), [data]);
-  const createDraftForType = useCallback((type: DraftEntry['type'], entry?: LedgerEntry) => createDraft(type, entry), []);
+  const createDraftForType = useCallback((type: DraftEntry['type'], entry?: LedgerEntry) => {
+    const canonical = entry ?? getCanonicalEntryForPeriod(dataRef.current, type);
+    return createDraft(type, canonical);
+  }, []);
   const saveDraft = useCallback((type: DraftEntry['type'], draft: DraftEntry) => {
     persist((current) => persistDraftState(current, type, draft));
   }, [persist]);
@@ -146,6 +170,25 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const updateAutosave = useCallback((autosave: boolean) => {
     persist((current) => updateSettings(current, { autosave }));
   }, [persist]);
+  const updateIntegrationUrls = useCallback((contextOsUrl: string, socialOsUrl: string) => {
+    persist((current) => updateSettings(current, { contextOsUrl: contextOsUrl.trim(), socialOsUrl: socialOsUrl.trim() }));
+  }, [persist]);
+  const createHandoff = useCallback((entryId: string, input: { target: HandoffTarget; kind: HandoffKind; title: string; body: string; area?: string }) => {
+    let candidate: HandoffCandidate | undefined;
+    persist((current) => {
+      const result = createHandoffCandidate(current, { ...input, sourceEntryId: entryId });
+      candidate = result.candidate;
+      return result.data;
+    });
+    if (!candidate) throw new Error('Handoff could not be created.');
+    return candidate;
+  }, [persist]);
+  const updateHandoff = useCallback((id: string, handoffStatus: HandoffStatus) => {
+    persist((current) => updateHandoffStatus(current, id, handoffStatus));
+  }, [persist]);
+  const updatePublication = useCallback((entryId: string, publication: PublicationRecord) => {
+    persist((current) => updateEntryPublication(current, entryId, publication));
+  }, [persist]);
   const replaceData = useCallback((nextData: LedgerData) => {
     persist(() => replaceLedgerData(nextData));
   }, [persist]);
@@ -165,11 +208,16 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       updateCommitmentStatus: updateCommitmentById,
       updateTheme,
       updateAutosave,
+      updateIntegrationUrls,
+      createHandoff,
+      updateHandoffStatus: updateHandoff,
+      updatePublication,
       exportData: () => exportLedgerData(data),
       replaceData
     }),
     [
       commitDraftForType,
+      createHandoff,
       createCommitmentFromEntry,
       createDraftForType,
       data,
@@ -182,6 +230,9 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       status,
       updateCommitmentById,
       updateAutosave,
+      updateHandoff,
+      updateIntegrationUrls,
+      updatePublication,
       updateTheme
     ]
   );

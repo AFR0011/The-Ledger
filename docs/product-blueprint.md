@@ -1,26 +1,14 @@
 # Product Blueprint
 
-## Definition
-The Ledger is a private, local-first, mobile-friendly operating ledger that keeps one user anchored through structured daily, weekly, and monthly reflection.
+The Ledger is a private, local-first authoring tool for structured daily journals and monthly reviews.
 
-## Core Principles
-- Local-first
-- Single-user
-- Fast structured prompts over open-ended journaling
-- Searchable continuity and low-friction re-entry
-- Deterministic insights only; no external AI dependency
+Its job is to help the user answer what happened, what mattered, how they were, where they drifted or learned, and what deserves attention next. It may suggest a handoff, but it does not own tasks, projects, people records, or the durable knowledge canon.
 
-## Core Questions
-1. What moved?
-2. What matters now?
-3. What do I do next?
+Core principles:
 
-## Implemented Scope
-- Guided entry flow for daily, weekly, and monthly prompts
-- Local draft autosave and resume
-- Searchable entry history and editable detail views
-- Continuity snapshot and deterministic pattern signals
-- Review queue for commitments, next steps, bottlenecks, drift, and decisions
-- Thread view for following repeated domains, states, and named current threads
-- JSON backup export/import
-- Theme settings and offline/PWA shell
+- Local-first, single-user, and usable offline
+- Versioned structured prompts with optional freeform writing
+- No loss of historical answers, drafts, tags, commitments, or timestamps
+- LifeOS publishing that preserves content outside Ledger-managed regions
+- Explicit preview and approval before cross-system creation
+- Deterministic integration behavior without hidden background mutation

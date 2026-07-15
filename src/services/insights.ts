@@ -64,7 +64,7 @@ function deriveRecurringDomains(entries: LedgerEntry[]): string[] {
 function deriveConsistency(entries: LedgerEntry[]): NextStepConsistency {
   const nextSteps = entries
     .map((entry) =>
-      selectSignal(entry, ['next_right_step', 'next_week_about', 'next_month_about', 'current_thread'])
+      selectSignal(entry, ['tomorrow_attention', 'next_right_step', 'next_week_about', 'next_month_direction', 'next_month_about', 'day_story', 'current_thread'])
     )
     .filter(Boolean)
     .slice(0, 3);
@@ -100,6 +100,7 @@ export function describeEntryInsightContext(entry: LedgerEntry, trajectory: Traj
   if (
     entry.stateTags.includes('win') ||
     Boolean(entry.answers.evidence_of_progress) ||
+    Boolean(entry.answers.meaningful_progress) ||
     Boolean(entry.answers.proof_of_progress) ||
     Boolean(entry.answers.improved)
   ) {
@@ -109,6 +110,7 @@ export function describeEntryInsightContext(entry: LedgerEntry, trajectory: Traj
   if (
     entry.stateTags.includes('bottleneck') ||
     Boolean(entry.answers.bottlenecks_kept_showing_up) ||
+    Boolean(entry.answers.drift_struggle_learning) ||
     Boolean(entry.answers.regressed)
   ) {
     context.push('Feeds bottleneck tracking');
@@ -117,6 +119,7 @@ export function describeEntryInsightContext(entry: LedgerEntry, trajectory: Traj
   if (
     entry.stateTags.includes('drift') ||
     Boolean(entry.answers.drift_or_fragment) ||
+    Boolean(entry.answers.drift_struggle_learning) ||
     Boolean(entry.answers.reduce_or_constrain)
   ) {
     context.push('Feeds drift tracking');
@@ -138,10 +141,11 @@ export function deriveInsights(entries: LedgerEntry[], trajectory: TrajectorySna
         (entry) =>
           entry.stateTags.includes('win') ||
           Boolean(entry.answers.evidence_of_progress) ||
+          Boolean(entry.answers.meaningful_progress) ||
           Boolean(entry.answers.proof_of_progress) ||
           Boolean(entry.answers.improved)
       )
-      .map((entry) => `${entry.periodLabel}: ${summarizeText(selectSignal(entry, ['evidence_of_progress', 'proof_of_progress', 'improved', 'built']))}`)
+      .map((entry) => `${entry.periodLabel}: ${summarizeText(selectSignal(entry, ['meaningful_progress', 'evidence_of_progress', 'proof_of_progress', 'improved', 'built']))}`)
   ).slice(0, 3);
 
   const bottlenecks = dedupe(
@@ -151,10 +155,11 @@ export function deriveInsights(entries: LedgerEntry[], trajectory: TrajectorySna
           entry.stateTags.includes('bottleneck') ||
           entry.stateTags.includes('drift') ||
           Boolean(entry.answers.drift_or_fragment) ||
+          Boolean(entry.answers.drift_struggle_learning) ||
           Boolean(entry.answers.bottlenecks_kept_showing_up) ||
           Boolean(entry.answers.regressed)
       )
-      .map((entry) => `${entry.periodLabel}: ${summarizeText(selectSignal(entry, ['bottlenecks_kept_showing_up', 'drift_or_fragment', 'regressed']))}`)
+      .map((entry) => `${entry.periodLabel}: ${summarizeText(selectSignal(entry, ['drift_struggle_learning', 'bottlenecks_kept_showing_up', 'drift_or_fragment', 'regressed']))}`)
   ).slice(0, 3);
 
   const driftSignals = dedupe(
@@ -176,7 +181,7 @@ export function deriveInsights(entries: LedgerEntry[], trajectory: TrajectorySna
     recurringDomains: deriveRecurringDomains(recentEntries),
     suggestedFocus:
       trajectory.lastNextStep ||
-      selectSignal(recentEntries[0], ['next_right_step', 'next_week_about', 'next_month_about']) ||
+      selectSignal(recentEntries[0], ['tomorrow_attention', 'next_right_step', 'next_week_about', 'next_month_direction', 'next_month_about']) ||
       'Start a fresh entry to recover your next right step.',
     nextStepConsistency: deriveConsistency(recentEntries)
   };

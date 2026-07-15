@@ -7,7 +7,9 @@ function createEntry(overrides: Partial<LedgerEntry>): LedgerEntry {
   return {
     id: overrides.id ?? crypto.randomUUID(),
     type: overrides.type ?? 'daily',
+    promptVersion: overrides.promptVersion ?? 1,
     date: overrides.date ?? '2026-04-08',
+    periodKey: overrides.periodKey ?? '2026-04-08',
     periodLabel: overrides.periodLabel ?? 'Wed, Apr 8, 2026',
     headline: overrides.headline ?? '',
     answers: overrides.answers ?? {},

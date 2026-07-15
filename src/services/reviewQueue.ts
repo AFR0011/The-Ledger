@@ -26,7 +26,7 @@ function hasActiveCommitment(commitments: LedgerCommitment[], entryId: string, t
 }
 
 export function getEntryCommitmentCandidate(entry: LedgerEntry): string {
-  return selectEntrySignal(entry, ['next_right_step', 'next_week_about', 'next_month_about']);
+  return selectEntrySignal(entry, ['tomorrow_attention', 'next_right_step', 'next_week_about', 'next_month_direction', 'next_month_about']);
 }
 
 export function buildReviewQueue(entries: LedgerEntry[], commitments: LedgerCommitment[]): ReviewQueueItem[] {

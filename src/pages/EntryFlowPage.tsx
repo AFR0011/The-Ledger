@@ -5,8 +5,10 @@ import { EmptyState } from '../components/common/EmptyState';
 import { TagPill } from '../components/common/TagPill';
 import { PromptCard } from '../components/entry/PromptCard';
 import { TagGroupField } from '../components/entry/TagGroupField';
-import { DOMAIN_TAGS, ENTRY_BLUEPRINTS, STATE_TAGS, isEntryType } from '../config/prompts';
+import { DOMAIN_TAGS, STATE_TAGS, getEntryBlueprint, isEntryType } from '../config/prompts';
 import type { DraftEntry } from '../types/ledger';
+import { formatPeriodLabel, getPeriodKey, parseLocalDate } from '../utils/date';
+import { loadLifeOsFolder, readDirectionContext, type DirectionContext } from '../services/lifeOsFolder';
 
 function toggleValue(values: string[], target: string) {
   return values.includes(target) ? values.filter((value) => value !== target) : [...values, target];
@@ -24,6 +26,7 @@ export function EntryFlowPage() {
   const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
   const [error, setError] = useState('');
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const [direction, setDirection] = useState<DirectionContext | null>(null);
 
   useEffect(() => {
     draftStoreRef.current = data.drafts;
@@ -55,6 +58,14 @@ export function EntryFlowPage() {
     setError('');
     setConfirmingDiscard(false);
   }, [routeKey]);
+
+  useEffect(() => {
+    if (entryType !== 'daily' && entryType !== 'monthly') return;
+    void loadLifeOsFolder().then(async (handle) => {
+      if (!handle || await handle.queryPermission({ mode: 'read' }) !== 'granted') return;
+      setDirection(await readDirectionContext(handle));
+    }).catch(() => setDirection(null));
+  }, [entryType]);
 
   useEffect(() => {
     if (!entryType || !draft || !data.settings.autosave) {
@@ -94,6 +105,25 @@ export function EntryFlowPage() {
     );
   }
 
+  if (entryType === 'weekly' && !entryId) {
+    return (
+      <EmptyState
+        title="Weekly reviews now live in ContextOS"
+        description="Historical weekly entries remain readable here. New weekly planning and review belong to ContextOS so execution has one canonical home."
+        action={
+          <a
+            className="inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+            href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open ContextOS Reviews
+          </a>
+        }
+      />
+    );
+  }
+
   if (entryId && !seedEntry && !draft) {
     return (
       <EmptyState
@@ -115,11 +145,12 @@ export function EntryFlowPage() {
     return null;
   }
 
-  const prompts = ENTRY_BLUEPRINTS[entryType].prompts;
+  const blueprint = getEntryBlueprint(entryType, draft.promptVersion);
+  const prompts = blueprint.prompts;
   const totalSteps = prompts.length + 1;
   const isReviewStep = draft.currentStep >= prompts.length;
   const currentPrompt = isReviewStep ? null : prompts[draft.currentStep];
-  const missingPromptIndex = prompts.findIndex((prompt) => !draft.answers[prompt.key]?.trim());
+  const missingPromptIndex = prompts.findIndex((prompt) => prompt.required !== false && !draft.answers[prompt.key]?.trim());
 
   const updateDraft = (updater: (current: DraftEntry) => DraftEntry) => {
     setDraft((current) => (current ? updater(current) : current));
@@ -136,20 +167,14 @@ export function EntryFlowPage() {
   };
 
   const submit = () => {
-    if (!draft.periodLabel.trim()) {
-      setError('Add a period label before finishing.');
-      updateDraft((current) => ({ ...current, currentStep: prompts.length }));
-      return;
-    }
-
     if (missingPromptIndex >= 0) {
-      setError('Answer every prompt before finishing the entry.');
+      setError('Answer every required prompt before finishing the entry.');
       updateDraft((current) => ({ ...current, currentStep: missingPromptIndex }));
       return;
     }
 
     const entry = commitDraft(entryType, draft);
-    navigate(`/entries/${entry.id}`);
+    navigate(`/entries/${entry.id}?publish=1`);
   };
 
   return (
@@ -158,14 +183,14 @@ export function EntryFlowPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <TagPill tone="accent">{ENTRY_BLUEPRINTS[entryType].label}</TagPill>
+              <TagPill tone="accent">{blueprint.label}</TagPill>
               {entryId ? <TagPill tone="warm">editing</TagPill> : null}
             </div>
             <h2 className="mt-4 text-[clamp(2rem,3vw,3rem)] font-[510] leading-[0.98] tracking-[-0.04em] text-[var(--ink)]">
               {entryId ? 'Refine the entry' : `Capture the ${entryType} thread`}
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">
-              {ENTRY_BLUEPRINTS[entryType].intro}
+              {blueprint.intro}
             </p>
           </div>
           <div className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2 text-[13px] text-[var(--text-secondary)]">
@@ -173,6 +198,16 @@ export function EntryFlowPage() {
           </div>
         </div>
       </section>
+
+      {direction && (direction.currentSeason || direction.annualOutcomes) ? (
+        <details className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <summary className="cursor-pointer text-[13px] font-medium text-[var(--accent-bright)]">Direction context from LifeOS</summary>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div><p className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Current Season</p><pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap font-sans text-[13px] leading-6 text-[var(--text-secondary)]">{direction.currentSeason || 'Not available.'}</pre></div>
+            <div><p className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Annual Outcomes</p><pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap font-sans text-[13px] leading-6 text-[var(--text-secondary)]">{direction.annualOutcomes || 'Not available.'}</pre></div>
+          </div>
+        </details>
+      ) : null}
 
       {currentPrompt ? (
         <PromptCard
@@ -199,17 +234,22 @@ export function EntryFlowPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Period label</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                {entryType === 'monthly' ? 'Month' : 'Entry date'}
+              </span>
               <input
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-3 text-[14px] text-[var(--ink)] outline-none focus:border-[var(--accent-border)] focus:shadow-focus"
                 onChange={(event) =>
-                  updateDraft((current) => ({
-                    ...current,
-                    periodLabel: event.target.value
-                  }))
+                  updateDraft((current) => {
+                    const date = entryType === 'monthly' ? `${event.target.value}-01` : event.target.value;
+                    const parsed = parseLocalDate(date);
+                    return { ...current, date, periodKey: getPeriodKey(entryType, parsed), periodLabel: formatPeriodLabel(entryType, parsed) };
+                  })
                 }
-                value={draft.periodLabel}
+                type={entryType === 'monthly' ? 'month' : 'date'}
+                value={entryType === 'monthly' ? draft.date.slice(0, 7) : draft.date}
               />
+              <span className="block text-[12px] text-[var(--muted)]">{draft.periodLabel}</span>
             </label>
 
             <label className="space-y-2">
@@ -260,7 +300,7 @@ export function EntryFlowPage() {
               {prompts.map((prompt) => (
                 <li key={prompt.key}>
                   <span className="font-medium text-[var(--ink)]">{prompt.label}</span>
-                  {draft.answers[prompt.key]?.trim() ? ' complete' : ' missing'}
+                  {draft.answers[prompt.key]?.trim() ? ' complete' : prompt.required === false ? ' optional' : ' missing'}
                 </li>
               ))}
             </ul>

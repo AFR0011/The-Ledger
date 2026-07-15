@@ -1,64 +1,26 @@
-# The Ledger - Implementation Blueprint
+# The Ledger Blueprint
 
-## Current Phase: Phase 3 - Polish, reliability, and optional PWA improvements
+## Role
 
----
+The Ledger is the private authoring surface for daily journals and monthly reviews. It is local-first and single-user. LifeOS is the durable Markdown destination; ContextOS owns weekly reviews and execution; SocialOS owns people-specific records.
 
-## Active Batch: Batch 001
+## Active contract
 
-### Title: Polish & Reliability - Error Handling Improvements
+- Daily and monthly prompts are versioned. Old entries render with their original prompts and unknown answers remain visible.
+- Weekly entries are historical and read-only. Starting a weekly review opens ContextOS `/reviews`.
+- Entry periods use the user's local calendar. Each day or month has one canonical entry; older duplicates remain explicit legacy records.
+- Daily next steps become editable ContextOS handoff candidates, not Ledger tasks.
+- Social handoffs require a user-selected excerpt; whole journals are never proposed automatically.
+- Every handoff is a preview-first `lifeos-handoff/v1` URL-fragment payload.
+- Publishing first saves locally, then writes only Ledger-managed regions to LifeOS. Unmanaged or mismatched files become conflicts.
+- Connected-folder publishing reads only the current season and current annual outcomes for optional context.
 
-### Description
-The core ledger functionality is well-implemented (entry wizard, local storage, draft loops, trajectory, insights, commitments). This batch focuses on polishing error handling and edge cases to improve reliability.
+## Persistence
 
-### Acceptance Criteria
-1. App handles localStorage quota exceeded scenarios gracefully
-2. Draft autosave failures are visible but non-blocking
-3. Import/export provides clear feedback on success/failure
-4. No unhandled exceptions in user workflows
+- App data and backups emit schema v2; backup imports accept v1 and v2.
+- Content is stored locally. A connected folder handle is remembered separately in IndexedDB and excluded from backups.
+- Markdown fallback supports individual downloads and a bulk ZIP with canonical LifeOS paths.
 
-### Files to Modify
-| File | Change |
-|------|--------|
-| `src/services/ledgerStorage.ts` | Add localStorage quota detection before save attempts |
-| `src/app/LedgerProvider.tsx` | Add error boundary around save operations, feedback for autosave failures |
-| `src/pages/SettingsPage.tsx` | Add import/export status feedback |
-| `src/services/backup.ts` | Improve backup validation and error messages |
+## Verification
 
-### Verification Approach
-1. Run `npm run test` - ensure existing tests pass
-2. Test with localStorage quota exceeded (Chrome DevTools Application > Storage > Clear site data > Quota exceeded simulation)
-3. Test import/export workflows with valid and invalid data
-
-### Remaining Risks
-- None identified for this batch
-
----
-
-## Completed Batches
-
-### Batch 000: Project Init
-- Project structure established
-- Core data models defined
-- Entry types (daily, weekly, monthly) with prompts
-- Basic routing and navigation
-- Local storage persistence with migration support
-
----
-
-## Future Batches (Planned)
-
-### Batch 002: Search & Filter Enhancement
-- Add search query to entries page
-- Add domain/state tag filters
-- Filter persistence across navigation
-
-### Batch 003: Import/Export Improvements
-- Import from backup file
-- Export to JSON/CSV formats
-- Data validation on import
-
-### Batch 004: PWA Enhancements
-- Service worker caching for offline support
-- Add to home screen prompt
-- Background sync for unsaved changes
+Run lint, unit/component tests, and production build. Browser smoke should cover folder permission, dry run, managed-region republishing, conflict handling, downloads, and handoff previews.

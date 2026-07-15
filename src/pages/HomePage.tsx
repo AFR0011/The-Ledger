@@ -31,15 +31,19 @@ export function HomePage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {ENTRY_TYPES.map((type) => (
-              <Link
-                key={type}
-                className="inline-flex min-w-36 items-center justify-center rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]"
-                to={getDraftHref(type)}
-              >
+            {(['daily', 'monthly'] as const).map((type) => (
+              <Link key={type} className="inline-flex min-w-36 items-center justify-center rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)]" to={getDraftHref(type)}>
                 {data.drafts[type] ? `Resume ${ENTRY_BLUEPRINTS[type].label}` : `New ${ENTRY_BLUEPRINTS[type].label}`}
               </Link>
             ))}
+            <a
+              className="inline-flex min-w-36 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
+              href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Weekly in ContextOS
+            </a>
           </div>
         </article>
 

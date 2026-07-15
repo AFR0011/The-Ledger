@@ -6,7 +6,7 @@ import { StatusBanner } from './StatusBanner';
 const NAV_ITEMS = [
   { to: '/', label: 'Home' },
   { to: '/entries', label: 'Entries' },
-  { to: '/review', label: 'Review' },
+  { to: '/review', label: 'Handoffs' },
   { to: '/threads', label: 'Threads' },
   { to: '/settings', label: 'Settings' }
 ] as const;
@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--muted)]">The Ledger</p>
-                <p className="text-[13px] text-[var(--text-secondary)]">Private operating history</p>
+                <p className="text-[13px] text-[var(--text-secondary)]">Private reflective history</p>
               </div>
             </Link>
 
@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Continuity without the clutter.
             </h1>
             <p className="mt-4 max-w-xl text-[15px] leading-7 text-[var(--text-secondary)]">
-              Dark-native, offline-first reflection with fast re-entry context, searchable history, and a durable next step.
+              Offline-first daily reflection, durable LifeOS publishing, and proposal-first handoffs to the systems that own execution and people.
             </p>
           </div>
 

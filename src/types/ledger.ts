@@ -1,4 +1,4 @@
-import type { EntryType } from '../config/prompts';
+import type { EntryType, PromptVersion } from '../config/prompts';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type StorageState = 'ready' | 'migrated' | 'unavailable' | 'corrupted';
@@ -6,11 +6,26 @@ export type NextStepConsistency = 'steady' | 'mixed' | 'reset';
 export type CommitmentStatus = 'open' | 'carried' | 'done' | 'dropped';
 export type ReviewQueueKind = 'commitment' | 'next-step' | 'bottleneck' | 'drift' | 'decision';
 export type ThreadSource = 'domain' | 'state' | 'current-thread';
+export type PublicationStatus = 'not-published' | 'synced' | 'stale' | 'downloaded' | 'conflict';
+export type HandoffTarget = 'contextos' | 'socialos';
+export type HandoffKind = 'next-action' | 'project-update' | 'note' | 'social-reflection' | 'follow-up';
+export type HandoffStatus = 'pending' | 'opened' | 'dismissed';
+
+export interface PublicationRecord {
+  status: PublicationStatus;
+  path: string;
+  lastPublishedAt?: string;
+  publishedSourceUpdatedAt?: string;
+  lastDownloadedAt?: string;
+  message?: string;
+}
 
 export interface LedgerEntry {
   id: string;
   type: EntryType;
+  promptVersion: PromptVersion;
   date: string;
+  periodKey: string;
   periodLabel: string;
   headline: string;
   answers: Record<string, string>;
@@ -18,6 +33,8 @@ export interface LedgerEntry {
   stateTags: string[];
   createdAt: string;
   updatedAt: string;
+  legacyDuplicateOf?: string;
+  publication?: PublicationRecord;
 }
 
 export interface LedgerCommitment {
@@ -33,9 +50,27 @@ export interface LedgerCommitment {
   resolvedAt?: string;
 }
 
+export interface HandoffCandidate {
+  id: string;
+  target: HandoffTarget;
+  kind: HandoffKind;
+  title: string;
+  body: string;
+  area?: string;
+  status: HandoffStatus;
+  sourceEntryId: string;
+  sourceEntryLabel: string;
+  sourceEntryDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DraftEntry {
   type: EntryType;
+  promptVersion: PromptVersion;
   entryId?: string;
+  date: string;
+  periodKey: string;
   periodLabel: string;
   currentStep: number;
   headline: string;
@@ -70,12 +105,15 @@ export interface InsightSnapshot {
 export interface LedgerSettings {
   theme: ThemeMode;
   autosave: boolean;
+  contextOsUrl: string;
+  socialOsUrl: string;
 }
 
 export interface LedgerData {
   appVersion: string;
   entries: LedgerEntry[];
   commitments: LedgerCommitment[];
+  handoffCandidates: HandoffCandidate[];
   drafts: Partial<Record<EntryType, DraftEntry>>;
   currentTrajectory: TrajectorySnapshot;
   insights: InsightSnapshot;
@@ -119,7 +157,7 @@ export interface ThreadSummary {
 
 export interface ImportEnvelope {
   format: 'the-ledger-backup';
-  version: 1;
+  version: 1 | 2;
   exportedAt: string;
   data: LedgerData;
 }

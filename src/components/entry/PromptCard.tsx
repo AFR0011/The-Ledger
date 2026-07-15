@@ -32,7 +32,7 @@ export function PromptCard({
         className="mt-3 max-w-3xl text-[clamp(1.75rem,3vw,2.5rem)] font-[510] leading-[1.02] tracking-[-0.04em] text-[var(--ink)]"
         id={promptId}
       >
-        {prompt.label}
+        {prompt.label} {prompt.required === false ? <span className="text-[0.55em] font-normal text-[var(--muted)]">Optional</span> : null}
       </h2>
       <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]" id={helperId}>
         {prompt.helperText}

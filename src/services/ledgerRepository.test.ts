@@ -51,14 +51,14 @@ describe('ledgerRepository', () => {
       current_thread: 'History page',
       next_right_step: 'Test import/export'
     });
-    daily.domainTags = ['dev'];
+    daily.domainTags = ['career-research'];
     daily.stateTags = ['win'];
 
     const committed = commitDraft(createDefaultLedgerData(), 'daily', daily);
     const visible = filterEntries(committed.data.entries, {
       query: 'history',
       type: 'all',
-      domainTag: 'dev',
+      domainTag: 'career-research',
       stateTag: 'all'
     });
 
@@ -98,5 +98,16 @@ describe('ledgerRepository', () => {
     expect(withCommitment.commitment.duePeriod).toBe('Tomorrow');
     expect(resolved.commitments[0].status).toBe('done');
     expect(resolved.commitments[0].resolvedAt).toBe('2026-04-24T11:00:00.000Z');
+  });
+
+  it('keeps one canonical entry per local period and preserves older duplicates as legacy', () => {
+    const first = createDraft('daily', undefined, new Date(2026, 6, 15, 8));
+    first.answers = { ...first.answers, day_story: 'Morning version', meaningful_progress: 'A', inner_state: 'Steady', drift_struggle_learning: 'None', tomorrow_attention: 'Continue', freeform_reflection: '' };
+    const firstCommit = commitDraft(createDefaultLedgerData(), 'daily', first, new Date('2026-07-15T08:00:00.000Z'));
+    const second = createDraft('daily', undefined, new Date(2026, 6, 15, 20));
+    second.answers = { ...second.answers, day_story: 'Evening version', meaningful_progress: 'B', inner_state: 'Steady', drift_struggle_learning: 'None', tomorrow_attention: 'Rest', freeform_reflection: '' };
+    const secondCommit = commitDraft(firstCommit.data, 'daily', second, new Date('2026-07-15T20:00:00.000Z'));
+    expect(secondCommit.data.entries).toHaveLength(1);
+    expect(secondCommit.entry.answers.day_story).toBe('Evening version');
   });
 });

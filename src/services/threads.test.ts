@@ -24,7 +24,8 @@ describe('threads', () => {
       current_thread: 'Local continuity',
       next_right_step: 'Add tests'
     });
-    first.domainTags = ['dev'];
+    first.domainTags = ['career-research'];
+    first.date = '2026-04-23';
     first.stateTags = ['win'];
 
     const second = answerDraft(createDraft('daily'), {
@@ -36,13 +37,14 @@ describe('threads', () => {
       current_thread: 'Local continuity',
       next_right_step: 'Run build'
     });
-    second.domainTags = ['dev'];
+    second.domainTags = ['career-research'];
+    second.date = '2026-04-24';
 
     const firstCommit = commitDraft(createDefaultLedgerData(), 'daily', first, new Date('2026-04-23T10:00:00.000Z'));
     const secondCommit = commitDraft(firstCommit.data, 'daily', second, new Date('2026-04-24T10:00:00.000Z'));
     const threads = deriveThreadSummaries(secondCommit.data.entries);
 
-    expect(threads.find((thread) => thread.id === 'domain:dev')?.count).toBe(2);
+    expect(threads.find((thread) => thread.id === 'domain:career-research')?.count).toBe(2);
     expect(threads.find((thread) => thread.id === 'current-thread:local continuity')?.count).toBe(2);
     expect(threads.find((thread) => thread.id === 'state:win')?.count).toBe(1);
   });

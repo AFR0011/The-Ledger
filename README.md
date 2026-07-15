@@ -1,59 +1,35 @@
 # The Ledger
 
-The Ledger is a private, offline-first operating ledger for daily, weekly, and monthly reflection. It keeps continuity local to the browser, surfaces the latest priorities and next step, and lets one user recover context quickly after drift or missed days.
-
-The application shell and interaction styling follow the dark-native system documented in `docs/DESIGN.md`. That file is the visual source of truth for layout density, surfaces, typography, and accent usage.
+The Ledger is a private, offline-first journal for daily entries and monthly reviews. It keeps drafts and history in the browser, publishes durable Markdown to LifeOS, and sends editable proposals to ContextOS or SocialOS only after approval.
 
 ## Current product scope
 
-- Guided daily, weekly, and monthly entry flows
-- Debounced local draft autosave and resume
-- Entry history, detail, edit, and delete
-- Search and filters across headlines, answers, and tags
-- Continuity card and deterministic local insights
-- Review queue for unresolved next steps, commitments, bottlenecks, drift, and decisions
-- Commitment tracking from finished entries
-- Thread view across domains, states, and named current threads
-- JSON backup export/import with validation
-- Theme controls and local storage status
-- PWA installability and offline app shell
+- Versioned daily and monthly prompts with an optional freeform reflection
+- Historical weekly entries retained read-only; new weekly reviews open ContextOS `/reviews`
+- Local-calendar dates, one canonical entry per day/month, and explicit legacy duplicates
+- Seven LifeOS area tags plus the operational `life-admin` tag
+- Local draft autosave, history, search, deterministic insights, and PWA support
+- JSON backup schema v2 with v1 import compatibility
+- LifeOS publishing through a connected folder or Markdown/ZIP downloads
+- Managed Markdown regions that preserve user and agent additions on republish
+- Proposal-first `lifeos-handoff/v1` links for ContextOS and SocialOS
 
-## Stack
+## Ownership boundaries
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- `localStorage`
-- `react-router-dom`
-- Vitest + Testing Library
-- `vite-plugin-pwa`
+- The Ledger authors daily journals and monthly reviews.
+- LifeOS owns their durable Markdown canon.
+- ContextOS owns weekly reviews, tasks, execution, and proposal triage.
+- SocialOS owns people-specific records.
+- Folder handles stay in IndexedDB and are never included in Ledger backups.
 
-## Local run and verification
+## Stack and verification
 
-This machine exposes Node through Docker rather than the host shell.
+React 18, TypeScript, Vite, Tailwind CSS, local browser storage, Vitest, and `vite-plugin-pwa`.
 
 ```powershell
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm install"
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run dev -- --host 0.0.0.0"
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run lint"
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run test"
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run build"
+pnpm run lint
+pnpm run test
+pnpm run build
 ```
 
-## PWA install and offline notes
-
-- The app now exposes install support in the header and in Settings when the browser raises the install prompt.
-- The offline app shell is cached after the first successful online load on the current device and browser profile.
-- Installed/offline use keeps the same `localStorage` dataset for that browser profile only. It does not sync across browsers, profiles, or devices.
-- If browser storage is cleared, the installed shell can remain while the ledger data is lost. Export backups before browser resets or device changes.
-
-## Repo map
-
-- [Project State](./docs/PROJECT_STATE.md)
-- [Design System](./docs/DESIGN.md)
-- [Repo Map](./docs/REPO_MAP.md)
-- [Run Protocol](./docs/RUN_PROTOCOL.md)
-- [Sprints](./docs/sprints.md)
-- [Architecture](./docs/architecture.md)
-- [Product Blueprint](./docs/product-blueprint.md)
+See [Project State](./docs/PROJECT_STATE.md), [Architecture](./docs/architecture.md), [Repo Map](./docs/REPO_MAP.md), [Run Protocol](./docs/RUN_PROTOCOL.md), and [Design](./docs/DESIGN.md).

@@ -1,8 +1,8 @@
 import type { LedgerData, StorageStatus } from '../types/ledger';
 import { createDefaultLedgerData, normalizeLedgerData } from './ledgerRepository';
 
-export const STORAGE_KEY = 'the-ledger:v1';
-const LEGACY_STORAGE_KEYS = ['private-ledger:v1'];
+export const STORAGE_KEY = 'the-ledger:v2';
+const LEGACY_STORAGE_KEYS = ['the-ledger:v1', 'private-ledger:v1'];
 
 function ready(message: string): StorageStatus {
   return {
@@ -47,7 +47,7 @@ function testStorageWrite(): { success: boolean; error?: string } {
     window.localStorage.setItem(testKey, testValue);
     window.localStorage.removeItem(testKey);
     return { success: true };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Local storage is blocked or unavailable. Changes will not persist.'

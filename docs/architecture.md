@@ -1,32 +1,21 @@
 # Architecture
 
-## Frontend
-- Vite + React 18 + TypeScript
-- Hash-based routing for static/offline friendliness
-- Tailwind CSS with CSS-variable theming
-- PWA manifest and service worker via `vite-plugin-pwa`
+## Frontend and state
 
-## State And Persistence
-- `LedgerProvider` owns the live app state and persistence calls.
-- `ledgerRepository.ts` keeps mutations and derived state updates pure.
-- `ledgerStorage.ts` persists entries, drafts, commitments, settings, and derived snapshots under `the-ledger:v1`.
-- `backup.ts` handles validated full-dataset export/import.
+- Vite + React 18 + TypeScript with hash routing and a PWA app shell.
+- `LedgerProvider` owns live state; repository helpers normalize data and enforce period uniqueness.
+- `ledgerStorage.ts` writes schema v2 under `the-ledger:v2` and migrates legacy local keys.
+- `backup.ts` emits v2 envelopes and accepts validated v1/v2 imports.
 
-## Derived State
-- `trajectory.ts`
-  - extracts last priorities, next step, weekly anchor, and missed-day count
-- `insights.ts`
-  - derives wins, bottlenecks, drift signals, and next-step consistency without external APIs
-- `reviewQueue.ts`
-  - derives unresolved review items from active commitments and recent entries
-- `threads.ts`
-  - groups entries into thread summaries from domain tags, state tags, and current-thread answers
+## Integration boundary
 
-## Route Structure
-- `HomePage`
-- `EntryFlowPage`
-- `EntriesPage`
-- `EntryDetailPage`
-- `ReviewPage`
-- `ThreadsPage`
-- `SettingsPage`
+- `markdownExport.ts` creates canonical daily/monthly Markdown and merges stable managed regions.
+- `lifeOsFolder.ts` validates a selected LifeOS root, remembers its handle in IndexedDB, reads only direction context, and supports dry-run/bulk publishing.
+- `downloads.ts` supplies single Markdown and ZIP fallback exports.
+- `handoff.ts` validates and encodes `lifeos-handoff/v1` payloads in URL fragments.
+- ContextOS and SocialOS receive proposals; no target record is created until the user approves its preview.
+
+## Routes
+
+- Home, entry flow, history/detail/edit, handoffs, threads, and settings.
+- Weekly creation is an external link to ContextOS; historical weekly detail remains readable.
