@@ -49,3 +49,28 @@
 - localStorage quota warnings are logged to console (non-blocking)
 - Autosave failures now show visible error feedback in UI
 - Import/export error handling was already adequate
+
+## Session: 2026-07-16
+
+### Finish-entry persistence repair
+
+**Reported defect:** Finishing an entry threw `Commit failed because the draft could not be saved.`
+
+**Root cause:** `LedgerProvider.persist()` derived return values inside React's functional state updater. When a draft save was already queued, React could defer the commit updater until after `commitDraftForType()` checked `committedEntry`.
+
+**Implementation:**
+
+- Produce the next `LedgerData` synchronously from `dataRef.current`.
+- Advance `dataRef.current` immediately so sequential mutations share the latest state.
+- Write localStorage and storage status before scheduling the React render.
+- Add a provider regression test that saves and commits a draft back-to-back.
+
+**Evidence:**
+
+- Focused regression failed with the original exception before the repair and passed afterward.
+- Docker lint passed.
+- Docker tests passed: 24 tests in 12 files.
+- Docker production PWA build passed.
+- Brave completed the full daily flow and persisted one entry after immediate Save Draft + Finish Entry, with the draft cleared and no browser errors.
+
+**Outcome:** `PASS_WITH_RISKS`; dependency advisories remain tracked separately in `RISK_REGISTER.md`.

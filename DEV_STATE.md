@@ -1,38 +1,31 @@
 # The Ledger - Development State
 
-## Current Status: EXECUTING FINISH-ENTRY PERSISTENCE REPAIR
+## Current Status: COMPLETE
 
-### Phase 3 Progress: repair batch in progress
+### Latest batch
 
 | Task | Status |
 |------|--------|
-| Finish-entry persistence repair | IN PROGRESS |
-| Batch 001: remaining error handling improvements | NOT STARTED |
+| Finish-entry persistence repair | COMPLETE |
 
-### Files Changed This Session
-- `BLUEPRINT.md` — accepted bounded repair batch
-- `DEV_STATE.md` — active phase and scope
+### Files changed
 
-### Storage Status
-- Local storage: **READY**
-- Migration from legacy storage: **Not needed** (no legacy data detected)
+- `src/app/LedgerProvider.tsx` — provider mutations now advance the current data ref and local persistence synchronously before React rendering.
+- `src/app/LedgerProvider.test.tsx` — regression coverage for autosave followed immediately by Finish Entry.
+- `BLUEPRINT.md`, `DEV_STATE.md`, `DEV_LOG.md`, `QA_REPORT.md`, `RISK_REGISTER.md`, and `docs/PROJECT_STATE.md` — scope and evidence reconciliation.
 
-### Pending Tasks
-1. Finish-entry persistence repair
-   - reproduce deferred React updater failure
-   - make provider mutations return synchronously
-   - verify finish-entry persistence in tests and Brave
-2. Batch 001 - remaining error handling improvements
-   - localStorage quota detection
-   - Autosave failure feedback
-   - Import/export status feedback
-   - Error handling in user workflows
+### Verification
 
-### Tests
-- Unit tests: `npm run test` - not yet run this session
-- Build: `npm run build` - not yet run this session
+- Docker Node 20 dependency install: passed.
+- Docker lint: passed.
+- Docker tests: 24 passed across 12 files.
+- Docker TypeScript and Vite/PWA build: passed.
+- Brave smoke: back-to-back Save Draft and Finish Entry navigated to the saved entry; one entry persisted in `the-ledger:v2`, the daily draft was cleared, and no browser error was reported.
 
-### Next Steps
-1. Add the finish-entry regression test
-2. Implement the provider persistence repair
-3. Run the verification ladder and update `QA_REPORT.md`
+### Remaining risk
+
+- npm reports 19 development-tree advisories. Production dependencies have two moderate advisories and no high or critical advisories. Major Vite/Vitest upgrades belong in a separate dependency-maintenance batch.
+
+### Next step
+
+- Use The Ledger normally; handle dependency upgrades separately from this persistence repair.

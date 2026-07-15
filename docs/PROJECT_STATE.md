@@ -10,12 +10,14 @@
 - LifeOS connected-folder publishing, validation, dry run, bulk publishing, downloads, ZIP fallback, managed-region merge, and conflict states
 - Read-only LifeOS direction context limited to Current Season and current Annual Outcomes
 - PWA dependency and source lint/mojibake issues repaired
+- Finish Entry persists synchronously even when an autosave or manual draft save is already queued
 
 ## Verification
 
 - Lint passes.
-- 23 unit/component tests pass.
+- 24 unit/component tests pass.
 - TypeScript and production PWA build pass.
+- Brave finish-entry smoke passes with back-to-back Save Draft and Finish Entry actions.
 
 ## Remaining browser checks
 
