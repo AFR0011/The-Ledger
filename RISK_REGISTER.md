@@ -63,7 +63,7 @@ superseded by R010. No risk may be marked mitigated solely by documentation.
 | R008 | MITIGATED | strict origin parser, imported-origin disclosure, and per-handoff confirmation |
 | R009 | MITIGATED | quota UI and expected-byte cross-tab freeze covered by tests |
 | R010 | CLOSED | production and full dependency audits report zero findings |
-| R011 | PARTIAL | workflow and header policy exist; public CI/live read-back remain publication gates |
+| R011 | MITIGATED | public CI/browser jobs and exact-SHA live header read-back passed |
 | R012 | MITIGATED | 320 px, 390 px, and desktop navigation bounds pass Playwright |
 | R013 | MITIGATED | Node/npm commands and governance authorities reconciled and tested |
 

@@ -9,7 +9,9 @@
   navigation, security headers, truthful documentation, and synthetic visuals.
 - Candidate verification: 39 unit/component tests, 10 production-preview browser
   tests, lint/build, and both dependency audits pass under Node 20/npm 10.
-- Independent verdict: `PASS_WITH_RISKS`; publication evidence is pending.
+- Independent verdict: `PASS_WITH_RISKS`.
+- PR #2 merged through public CI; its exact-SHA production deployment, security
+  headers, and responsive navigation were verified before release closeout.
 
 ## 2026-07-16 — finish-entry persistence repair
 

@@ -114,3 +114,16 @@ commits reachable; sensitive-data scan clear.
 **Independent verdict:** `PASS_WITH_RISKS`. Remaining risks are the accepted
 browser-local/no-encrypted-cloud boundary, browser-dependent folder permissions,
 and conflict detection without automatic merge. Publication-only gates remain.
+
+### Phase 2 publication checkpoint
+
+- PR #2 merged by merge commit `6944dd1`; all 16 baseline commits remain
+  reachable in the 18-commit default-branch history.
+- Public Actions run `33913775896` passed verify and browser jobs.
+- Vercel production deployment `6271847450` succeeded for exact SHA `6944dd1`.
+- The retained homepage served the candidate assets and read back CSP, nosniff,
+  no-referrer, permissions, and same-origin opener headers.
+- Live 320/390/1280 px checks reported zero document overflow and all mobile
+  navigation items remained within viewport bounds.
+- Approved metadata and available GitHub security controls were enabled and
+  read back. Fresh-clone and exact tag/release read-back remain.
