@@ -72,5 +72,16 @@ cross-tab conflict freezing, and offline shell reopening.
 - File System Access depends on browser support and renewed permissions.
 - Concurrent tab changes are detected and frozen; they are not automatically
   merged.
-- Public CI, live response headers, a fresh public clone, and the exact release
-  SHA must still be verified before publishing `v1.0.0-local-first`.
+- A fresh public clone and the exact release SHA must still be verified before
+  publishing `v1.0.0-local-first`.
+
+## Public publication evidence
+
+| Check | Result | Evidence |
+|---|---|---|
+| Reviewed merge | PASS | PR #2 merged with merge commit `6944dd1`; no squash/rebase/force-push |
+| Public CI | PASS | Actions run `33913775896`: verify 33s, browser 59s |
+| Production identity | PASS | Vercel deployment `6271847450` succeeded for exact SHA `6944dd1` |
+| Live headers | PASS | CSP, nosniff, no-referrer, permissions policy, and same-origin opener policy read back |
+| Live responsive bounds | PASS | 320, 390, and 1280 px each reported zero document overflow |
+| Repository controls | PASS | description/topics, Dependabot alerts/updates, secret scanning/push protection, and private vulnerability reporting read back enabled |

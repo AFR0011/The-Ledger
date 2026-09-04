@@ -2,7 +2,7 @@
 
 Schema: `agentic-workflow/v2`
 Profile: software
-Phase: TEST
+Phase: RELEASE
 Cycle status: IN_PROGRESS
 Active task: Phase 2 local-first trust release
 Active batch: approved TL-D1–TL-D12 Option A
@@ -20,8 +20,8 @@ active blueprint.
 - user data remains browser-local and is not encrypted or cloud-backed up;
 - File System Access behavior remains browser- and permission-dependent;
 - conflicts are detected and frozen rather than merged across tabs or devices;
-- public CI, live header read-back, fresh-clone verification, and the exact
-  release SHA remain publication gates.
+- fresh-clone verification and the exact release tag/read-back remain
+  publication gates.
 
 ## Protected inputs
 
@@ -31,6 +31,6 @@ device-local folder handles, proposal-first handoffs, and zero real journal data
 
 ## Next action
 
-Publish the frozen candidate through a normal reviewed branch. Require green
-public CI, live deployment/header read-back, and a fresh-clone pass before branch
-cleanup or the release tag.
+Verify a fresh public clone of the final default-branch SHA, prove ancestry before
+deleting the already-merged legacy branch, then create and read back the exact
+release tag without rewriting history.

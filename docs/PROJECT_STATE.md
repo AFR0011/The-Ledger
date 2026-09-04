@@ -38,6 +38,7 @@
 
 ## Publication status
 
-The Phase 2 candidate has an independent `PASS_WITH_RISKS` verdict. Public CI,
-live-header read-back, final deployment identity, and a fresh-clone run remain
-required before the release tag is created.
+The Phase 2 candidate has an independent `PASS_WITH_RISKS` verdict. PR #2 merged
+normally, public CI and the exact-SHA Vercel production deployment passed, and
+the live header/mobile policy was read back. A fresh-clone run at the final SHA
+remains required before the release tag is created.
