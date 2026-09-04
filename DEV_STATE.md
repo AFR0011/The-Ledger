@@ -1,31 +1,36 @@
-# The Ledger - Development State
+# The Ledger — Development State
 
-## Current Status: COMPLETE
+Schema: `agentic-workflow/v2`
+Profile: software
+Phase: TEST
+Cycle status: IN_PROGRESS
+Active task: Phase 2 local-first trust release
+Active batch: approved TL-D1–TL-D12 Option A
+Owner: Ali Farrokhnejad
+Baseline: `53628778c72402bbb8dedd961b702adf209cd2d4`
+Tester verdict: PASS_WITH_RISKS
 
-### Latest batch
+## Blockers
 
-| Task | Status |
-|------|--------|
-| Finish-entry persistence repair | COMPLETE |
+None. Owner decisions and authorship truth are recorded externally and in the
+active blueprint.
 
-### Files changed
+## Current risks
 
-- `src/app/LedgerProvider.tsx` — provider mutations now advance the current data ref and local persistence synchronously before React rendering.
-- `src/app/LedgerProvider.test.tsx` — regression coverage for autosave followed immediately by Finish Entry.
-- `BLUEPRINT.md`, `DEV_STATE.md`, `DEV_LOG.md`, `QA_REPORT.md`, `RISK_REGISTER.md`, and `docs/PROJECT_STATE.md` — scope and evidence reconciliation.
+- user data remains browser-local and is not encrypted or cloud-backed up;
+- File System Access behavior remains browser- and permission-dependent;
+- conflicts are detected and frozen rather than merged across tabs or devices;
+- public CI, live header read-back, fresh-clone verification, and the exact
+  release SHA remain publication gates.
 
-### Verification
+## Protected inputs
 
-- Docker Node 20 dependency install: passed.
-- Docker lint: passed.
-- Docker tests: 24 passed across 12 files.
-- Docker TypeScript and Vite/PWA build: passed.
-- Brave smoke: back-to-back Save Draft and Finish Entry navigated to the saved entry; one entry persisted in `the-ledger:v2`, the daily draft was cleared, and no browser error was reported.
+Same repository/name, all 16 prior commits, MIT license, local-first/no-backend
+scope, v1/v2 backups, legacy prompt/entry semantics, unmanaged LifeOS content,
+device-local folder handles, proposal-first handoffs, and zero real journal data.
 
-### Remaining risk
+## Next action
 
-- npm reports 19 development-tree advisories. Production dependencies have two moderate advisories and no high or critical advisories. Major Vite/Vitest upgrades belong in a separate dependency-maintenance batch.
-
-### Next step
-
-- Use The Ledger normally; handle dependency upgrades separately from this persistence repair.
+Publish the frozen candidate through a normal reviewed branch. Require green
+public CI, live deployment/header read-back, and a fresh-clone pass before branch
+cleanup or the release tag.

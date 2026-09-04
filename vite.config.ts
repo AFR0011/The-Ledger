@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true
+        enabled: false
       },
       includeAssets: ['icons/the-ledger-192.svg', 'icons/the-ledger-512.svg'],
       workbox: {

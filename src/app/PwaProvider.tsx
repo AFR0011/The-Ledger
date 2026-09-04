@@ -31,7 +31,6 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(() => detectStandaloneMode());
   const updateServiceWorkerRef = useRef<ServiceWorkerUpdate | null>(null);
-  const reloadedForControllerChangeRef = useRef(false);
 
   useEffect(() => {
     const updateServiceWorker = registerTheLedgerServiceWorker({
@@ -69,22 +68,10 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     window.addEventListener('appinstalled', handleInstalled);
     mediaQuery.addEventListener('change', handleDisplayModeChange);
 
-    const handleControllerChange = () => {
-      if (reloadedForControllerChangeRef.current) {
-        return;
-      }
-
-      reloadedForControllerChangeRef.current = true;
-      window.location.reload();
-    };
-
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
       window.removeEventListener('appinstalled', handleInstalled);
       mediaQuery.removeEventListener('change', handleDisplayModeChange);
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 

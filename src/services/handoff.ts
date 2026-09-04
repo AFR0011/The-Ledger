@@ -1,4 +1,5 @@
 import type { HandoffCandidate, HandoffKind, HandoffTarget, LedgerEntry } from '../types/ledger';
+import { buildIntegrationUrl } from './integrationOrigins';
 
 export interface LifeOsHandoffV1 {
   schema: 'lifeos-handoff';
@@ -96,8 +97,9 @@ export function candidateToHandoff(candidate: HandoffCandidate, entry: LedgerEnt
 }
 
 export function buildHandoffUrl(baseUrl: string, route: string, payload: LifeOsHandoffV1): string {
-  const base = baseUrl.trim().replace(/\/+$/u, '');
-  return `${base}${route}#handoff=${encodeHandoff(payload)}`;
+  const destination = new URL(buildIntegrationUrl(baseUrl, route));
+  destination.hash = `handoff=${encodeHandoff(payload)}`;
+  return destination.toString();
 }
 
 export function handoffFromFragment(fragment: string, expectedTarget?: HandoffTarget): LifeOsHandoffV1 {

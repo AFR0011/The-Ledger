@@ -1,6 +1,7 @@
 import type { ImportEnvelope, LedgerData } from '../types/ledger';
 import { ENTRY_TYPES } from '../config/prompts';
 import { normalizeLedgerData } from './ledgerRepository';
+import { normalizeIntegrationOrigin } from './integrationOrigins';
 
 const BACKUP_FORMAT = 'the-ledger-backup';
 const BACKUP_VERSION = 2 as const;
@@ -30,6 +31,16 @@ function assertValidSettings(settings: unknown) {
 
   if (typeof settings.autosave !== 'boolean') {
     throw new Error('Import failed because the backup autosave setting is invalid.');
+  }
+
+  for (const value of [settings.contextOsUrl, settings.socialOsUrl]) {
+    if (value === undefined) continue;
+    try {
+      normalizeIntegrationOrigin(String(value));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The destination is invalid.';
+      throw new Error(`Import failed because an integration destination is unsafe. ${message}`);
+    }
   }
 }
 

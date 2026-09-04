@@ -1,7 +1,8 @@
 import type { EntryType, PromptVersion } from '../config/prompts';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type StorageState = 'ready' | 'migrated' | 'unavailable' | 'corrupted';
+export type StorageState = 'ready' | 'migrated' | 'unavailable' | 'corrupted' | 'conflicted';
+export type RecoveryReason = 'corrupted-current' | 'corrupted-legacy' | 'pre-import' | 'pre-restore';
 export type NextStepConsistency = 'steady' | 'mixed' | 'reset';
 export type CommitmentStatus = 'open' | 'carried' | 'done' | 'dropped';
 export type ReviewQueueKind = 'commitment' | 'next-step' | 'bottleneck' | 'drift' | 'decision';
@@ -130,6 +131,15 @@ export interface EntryFilters {
 export interface StorageStatus {
   state: StorageState;
   message: string;
+  writeBlocked?: boolean;
+}
+
+export interface RecoverySnapshot {
+  id: string;
+  capturedAt: string;
+  reason: RecoveryReason;
+  sourceKey: string;
+  rawValue: string;
 }
 
 export interface ReviewQueueItem {

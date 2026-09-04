@@ -52,4 +52,17 @@ describe('backup helpers', () => {
 
     expect(() => parseLedgerImport(invalidBackup)).toThrow('entries are invalid or incomplete');
   });
+
+  it('rejects an imported handoff destination that is not a safe origin', () => {
+    const data = createDefaultLedgerData();
+    data.settings.contextOsUrl = 'https://context.example/redirect';
+    const backup = JSON.stringify({
+      format: 'the-ledger-backup',
+      version: 2,
+      exportedAt: '2026-09-04T00:00:00.000Z',
+      data
+    });
+
+    expect(() => parseLedgerImport(backup)).toThrow(/destination is unsafe/u);
+  });
 });

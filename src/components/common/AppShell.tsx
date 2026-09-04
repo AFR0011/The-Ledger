@@ -169,14 +169,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav
           aria-label="Mobile"
-          className="fixed inset-x-4 bottom-4 z-30 flex items-center justify-between gap-2 rounded-2xl border border-[var(--border)] bg-[color:rgba(15,16,17,0.94)] p-2 shadow-panel backdrop-blur-xl md:hidden"
+          className="fixed inset-x-2 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-[var(--border)] bg-[color:rgba(15,16,17,0.94)] p-1.5 shadow-panel backdrop-blur-xl md:hidden sm:inset-x-4 sm:bottom-4 sm:gap-2 sm:p-2"
         >
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               className={({ isActive }) =>
                 [
-                  'flex min-h-11 flex-1 items-center justify-center rounded-xl border px-3 py-2.5 text-[13px] font-medium',
+                  'flex min-h-11 min-w-0 items-center justify-center rounded-xl border px-1 py-2.5 text-center text-[11px] font-medium sm:px-2 sm:text-[12px]',
                   isActive
                     ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--ink)]'
                     : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-subtle)] hover:bg-[var(--panel-quiet)] hover:text-[var(--ink)]'
