@@ -9,6 +9,7 @@ import { DOMAIN_TAGS, STATE_TAGS, getEntryBlueprint, isEntryType } from '../conf
 import type { DraftEntry } from '../types/ledger';
 import { formatPeriodLabel, getPeriodKey, parseLocalDate } from '../utils/date';
 import { loadLifeOsFolder, readDirectionContext, type DirectionContext } from '../services/lifeOsFolder';
+import { buildIntegrationUrl, integrationHost } from '../services/integrationOrigins';
 
 function toggleValue(values: string[], target: string) {
   return values.includes(target) ? values.filter((value) => value !== target) : [...values, target];
@@ -26,7 +27,24 @@ export function EntryFlowPage() {
   const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
   const [error, setError] = useState('');
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [direction, setDirection] = useState<DirectionContext | null>(null);
+  const draftRef = useRef<DraftEntry | null>(null);
+  const entryTypeRef = useRef(entryType);
+  const autosaveRef = useRef(data.settings.autosave);
+  const dirtyRef = useRef(false);
+  const allowedHashRef = useRef(window.location.hash);
+
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    entryTypeRef.current = entryType;
+    autosaveRef.current = data.settings.autosave;
+    dirtyRef.current = isDirty;
+  }, [data.settings.autosave, entryType, isDirty]);
 
   useEffect(() => {
     draftStoreRef.current = data.drafts;
@@ -35,6 +53,7 @@ export function EntryFlowPage() {
   useEffect(() => {
     if (!entryType) {
       setDraft(null);
+      setIsDirty(false);
       return;
     }
 
@@ -47,10 +66,12 @@ export function EntryFlowPage() {
       }
 
       setDraft(storedDraft?.entryId === entryId ? storedDraft : createDraftForType(entryType, seedEntry));
+      setIsDirty(false);
       return;
     }
 
     setDraft(storedDraft && !storedDraft.entryId ? storedDraft : createDraftForType(entryType));
+    setIsDirty(false);
   }, [createDraftForType, entryId, entryType, routeKey, seedEntry]);
 
   useEffect(() => {
@@ -68,25 +89,90 @@ export function EntryFlowPage() {
   }, [entryType]);
 
   useEffect(() => {
-    if (!entryType || !draft || !data.settings.autosave) {
+    if (!entryType || !draft || !data.settings.autosave || !isDirty) {
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
-      saveDraft(entryType, draft);
-      const isStorageUnavailable = status.state === 'unavailable' || status.state === 'corrupted';
-      if (isStorageUnavailable) {
-        setFeedback({
-          message: 'Autosave failed: ' + status.message,
-          tone: 'error'
-        });
-      } else {
+      try {
+        saveDraft(entryType, draft);
+        dirtyRef.current = false;
+        setIsDirty(false);
         setFeedback({ message: 'Draft autosaved locally.', tone: 'success' });
+      } catch (saveError) {
+        setFeedback({ message: saveError instanceof Error ? saveError.message : status.message, tone: 'error' });
       }
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [data.settings.autosave, draft, entryType, saveDraft, status]);
+  }, [data.settings.autosave, draft, entryType, isDirty, saveDraft, status.message]);
+
+  useEffect(() => () => {
+    const latestDraft = draftRef.current;
+    const latestType = entryTypeRef.current;
+    if (!dirtyRef.current || !autosaveRef.current || !latestDraft || !latestType) return;
+    try {
+      saveDraft(latestType, latestDraft);
+      dirtyRef.current = false;
+    } catch {
+      // The persistent status banner carries the write failure after navigation.
+    }
+  }, [saveDraft]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      const latestDraft = draftRef.current;
+      const latestType = entryTypeRef.current;
+      if (autosaveRef.current && latestDraft && latestType) {
+        try {
+          saveDraft(latestType, latestDraft);
+          dirtyRef.current = false;
+          return;
+        } catch {
+          // Fall through to the browser's leave warning.
+        }
+      }
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [saveDraft]);
+
+  useEffect(() => {
+    if (!isDirty || data.settings.autosave) {
+      allowedHashRef.current = window.location.hash;
+      return undefined;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!(target instanceof HTMLAnchorElement)) return;
+      const destination = new URL(target.href, window.location.href);
+      if (destination.origin !== window.location.origin || !destination.hash.startsWith('#/')) return;
+      if (destination.hash === allowedHashRef.current) return;
+      event.preventDefault();
+      setPendingNavigation(destination.hash.slice(1));
+    };
+
+    const handleHashChange = () => {
+      if (!dirtyRef.current || autosaveRef.current) return;
+      if (window.location.hash === allowedHashRef.current) return;
+      const destination = window.location.hash.slice(1);
+      const currentUrl = new URL(window.location.href);
+      currentUrl.hash = allowedHashRef.current;
+      window.history.replaceState(null, '', currentUrl);
+      setPendingNavigation(destination);
+    };
+
+    document.addEventListener('click', handleClick, true);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      document.removeEventListener('click', handleClick, true);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [data.settings.autosave, isDirty]);
 
   if (!entryType) {
     return (
@@ -113,11 +199,11 @@ export function EntryFlowPage() {
         action={
           <a
             className="inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
-            href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`}
+            href={buildIntegrationUrl(data.settings.contextOsUrl, '/reviews')}
             rel="noreferrer"
             target="_blank"
           >
-            Open ContextOS Reviews
+            Open {integrationHost(data.settings.contextOsUrl)}
           </a>
         }
       />
@@ -153,15 +239,25 @@ export function EntryFlowPage() {
   const missingPromptIndex = prompts.findIndex((prompt) => prompt.required !== false && !draft.answers[prompt.key]?.trim());
 
   const updateDraft = (updater: (current: DraftEntry) => DraftEntry) => {
-    setDraft((current) => (current ? updater(current) : current));
+    dirtyRef.current = true;
+    setIsDirty(true);
+    setDraft((current) => (current ? { ...updater(current), updatedAt: new Date().toISOString() } : current));
   };
 
   const saveNow = () => {
-    saveDraft(entryType, draft);
-    setFeedback({ message: 'Draft saved locally.', tone: 'success' });
+    try {
+      saveDraft(entryType, draft);
+      dirtyRef.current = false;
+      setIsDirty(false);
+      setFeedback({ message: 'Draft saved locally.', tone: 'success' });
+    } catch (saveError) {
+      setFeedback({ message: saveError instanceof Error ? saveError.message : 'Draft could not be saved.', tone: 'error' });
+    }
   };
 
   const discard = () => {
+    dirtyRef.current = false;
+    setIsDirty(false);
     discardDraft(entryType);
     navigate(entryId ? `/entries/${entryId}` : '/');
   };
@@ -173,8 +269,29 @@ export function EntryFlowPage() {
       return;
     }
 
-    const entry = commitDraft(entryType, draft);
-    navigate(`/entries/${entry.id}?publish=1`);
+    try {
+      const entry = commitDraft(entryType, draft);
+      dirtyRef.current = false;
+      setIsDirty(false);
+      navigate(`/entries/${entry.id}?publish=1`);
+    } catch (commitError) {
+      setError(commitError instanceof Error ? commitError.message : 'The entry could not be saved.');
+    }
+  };
+
+  const finishPendingNavigation = (save: boolean) => {
+    if (!pendingNavigation) return;
+    try {
+      if (save) saveDraft(entryType, draft);
+      else discardDraft(entryType);
+      dirtyRef.current = false;
+      setIsDirty(false);
+      const destination = pendingNavigation;
+      setPendingNavigation(null);
+      navigate(destination);
+    } catch (navigationError) {
+      setFeedback({ message: navigationError instanceof Error ? navigationError.message : 'The draft could not be resolved.', tone: 'error' });
+    }
   };
 
   return (
@@ -360,6 +477,19 @@ export function EntryFlowPage() {
             >
               Keep draft
             </button>
+          </div>
+        </section>
+      ) : null}
+
+      {pendingNavigation ? (
+        <section aria-labelledby="dirty-navigation-title" className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--warning-soft)] p-5 shadow-panel" role="alertdialog">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Unsaved draft</p>
+          <h3 className="mt-3 text-[22px] font-[510] tracking-[-0.03em] text-[var(--ink)]" id="dirty-navigation-title">Save or discard before leaving?</h3>
+          <p className="mt-3 text-[14px] leading-6 text-[var(--text-secondary)]">Autosave is off. Choose what happens to the latest edits before navigation continues.</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => finishPendingNavigation(true)} type="button">Save and leave</button>
+            <button className="min-h-11 rounded-md border border-[var(--danger-ink)] bg-[var(--danger-soft)] px-4 py-2.5 text-[13px] font-medium text-[var(--danger-ink)]" onClick={() => finishPendingNavigation(false)} type="button">Discard and leave</button>
+            <button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]" onClick={() => setPendingNavigation(null)} type="button">Stay here</button>
           </div>
         </section>
       ) : null}

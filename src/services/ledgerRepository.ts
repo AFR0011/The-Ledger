@@ -25,6 +25,7 @@ import type {
 import { formatPeriodLabel, getPeriodKey, parseLocalDate, toIsoDate } from '../utils/date';
 import { normalizeForSearch, summarizeText } from '../utils/text';
 import { createEmptyInsights, deriveInsights } from './insights';
+import { tryNormalizeIntegrationOrigin } from './integrationOrigins';
 import { createEmptyTrajectory, deriveTrajectory } from './trajectory';
 
 export const APP_DATA_VERSION = '2.0.0';
@@ -194,8 +195,8 @@ function normalizeSettings(value: unknown): LedgerSettings {
   return {
     theme: record.theme === 'light' || record.theme === 'system' ? record.theme : 'dark',
     autosave: typeof record.autosave === 'boolean' ? record.autosave : true,
-    contextOsUrl: typeof record.contextOsUrl === 'string' && record.contextOsUrl.trim() ? record.contextOsUrl : DEFAULT_CONTEXTOS_URL,
-    socialOsUrl: typeof record.socialOsUrl === 'string' && record.socialOsUrl.trim() ? record.socialOsUrl : DEFAULT_SOCIALOS_URL
+    contextOsUrl: tryNormalizeIntegrationOrigin(record.contextOsUrl, DEFAULT_CONTEXTOS_URL),
+    socialOsUrl: tryNormalizeIntegrationOrigin(record.socialOsUrl, DEFAULT_SOCIALOS_URL)
   };
 }
 

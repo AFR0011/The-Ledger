@@ -4,6 +4,7 @@ import { TagPill } from '../components/common/TagPill';
 import { ENTRY_BLUEPRINTS, ENTRY_TYPES } from '../config/prompts';
 import { buildEntrySummary } from '../services/ledgerRepository';
 import { formatDisplayDate, formatMissedDays } from '../utils/date';
+import { buildIntegrationUrl, integrationHost } from '../services/integrationOrigins';
 
 export function HomePage() {
   const { data } = useLedger();
@@ -38,11 +39,11 @@ export function HomePage() {
             ))}
             <a
               className="inline-flex min-w-36 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px] font-medium text-[var(--ink)]"
-              href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`}
+              href={buildIntegrationUrl(data.settings.contextOsUrl, '/reviews')}
               rel="noreferrer"
               target="_blank"
             >
-              Weekly in ContextOS
+              Weekly at {integrationHost(data.settings.contextOsUrl)}
             </a>
           </div>
         </article>

@@ -19,6 +19,7 @@ import type {
   LedgerData,
   LedgerEntry,
   PublicationRecord,
+  RecoverySnapshot,
   StorageStatus,
   ThemeMode
 } from '../types/ledger';
@@ -26,6 +27,7 @@ import { exportLedgerData } from '../services/backup';
 import {
   commitDraft,
   createCommitment,
+  createDefaultLedgerData,
   createHandoffCandidate,
   createDraft,
   deleteEntry,
@@ -38,11 +40,24 @@ import {
   updateHandoffStatus,
   updateSettings
 } from '../services/ledgerRepository';
-import { loadLedgerData, saveLedgerData } from '../services/ledgerStorage';
+import { normalizeIntegrationOrigin } from '../services/integrationOrigins';
+import {
+  discardRecoverySnapshot,
+  loadLedgerData,
+  loadRecoverySnapshots,
+  parseRecoverySnapshot,
+  preserveRecoverySnapshot,
+  readStorageQuota,
+  saveLedgerData,
+  STORAGE_KEY
+} from '../services/ledgerStorage';
 
 interface LedgerContextValue {
   data: LedgerData;
   status: StorageStatus;
+  quotaWarning?: string;
+  recoverySnapshots: RecoverySnapshot[];
+  blockedRawValue?: string;
   resolvedTheme: 'light' | 'dark';
   getEntry: (entryId: string) => LedgerEntry | undefined;
   createDraftForType: (type: DraftEntry['type'], entry?: LedgerEntry) => DraftEntry;
@@ -60,6 +75,10 @@ interface LedgerContextValue {
   updatePublication: (entryId: string, publication: PublicationRecord) => void;
   exportData: () => string;
   replaceData: (nextData: LedgerData) => void;
+  restoreRecovery: (id: string) => void;
+  discardRecovery: (id: string) => void;
+  reloadFromStorage: () => void;
+  startFreshAfterBlockedRecovery: () => void;
 }
 
 const LedgerContext = createContext<LedgerContextValue | null>(null);
@@ -76,12 +95,42 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const initialState = useMemo(() => loadLedgerData(), []);
   const [data, setData] = useState(initialState.data);
   const [status, setStatus] = useState(initialState.status);
+  const [quotaWarning, setQuotaWarning] = useState<string | undefined>();
+  const [recoverySnapshots, setRecoverySnapshots] = useState(() => loadRecoverySnapshots());
+  const [blockedRawValue, setBlockedRawValue] = useState<string | undefined>(
+    initialState.status.writeBlocked ? initialState.rawValue ?? undefined : undefined
+  );
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemTheme());
   const dataRef = useRef(data);
+  const statusRef = useRef(status);
+  const expectedRawRef = useRef(initialState.rawValue);
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    void readStorageQuota().then((quota) => setQuotaWarning(quota.warning));
+  }, [data]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY || event.newValue === expectedRawRef.current) return;
+      const conflictStatus: StorageStatus = {
+        state: 'conflicted',
+        writeBlocked: true,
+        message: 'Another tab changed this ledger. Writes are frozen until you export or reload this tab.'
+      };
+      statusRef.current = conflictStatus;
+      setStatus(conflictStatus);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -105,9 +154,14 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   }, [resolvedTheme]);
 
   const persist = useCallback((producer: (current: LedgerData) => LedgerData) => {
+    if (statusRef.current.writeBlocked) throw new Error(statusRef.current.message);
     const nextState = producer(dataRef.current);
+    const result = saveLedgerData(nextState, { expectedRaw: expectedRawRef.current });
+    statusRef.current = result.status;
+    setStatus(result.status);
+    if (result.status.state === 'conflicted') throw new Error(result.status.message);
+    expectedRawRef.current = result.rawValue;
     dataRef.current = nextState;
-    setStatus(saveLedgerData(nextState));
     setData(nextState);
     return nextState;
   }, []);
@@ -167,7 +221,9 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
     persist((current) => updateSettings(current, { autosave }));
   }, [persist]);
   const updateIntegrationUrls = useCallback((contextOsUrl: string, socialOsUrl: string) => {
-    persist((current) => updateSettings(current, { contextOsUrl: contextOsUrl.trim(), socialOsUrl: socialOsUrl.trim() }));
+    const normalizedContextOsUrl = normalizeIntegrationOrigin(contextOsUrl);
+    const normalizedSocialOsUrl = normalizeIntegrationOrigin(socialOsUrl);
+    persist((current) => updateSettings(current, { contextOsUrl: normalizedContextOsUrl, socialOsUrl: normalizedSocialOsUrl }));
   }, [persist]);
   const createHandoff = useCallback((entryId: string, input: { target: HandoffTarget; kind: HandoffKind; title: string; body: string; area?: string }) => {
     let candidate: HandoffCandidate | undefined;
@@ -186,13 +242,42 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
     persist((current) => updateEntryPublication(current, entryId, publication));
   }, [persist]);
   const replaceData = useCallback((nextData: LedgerData) => {
+    preserveRecoverySnapshot('pre-import', STORAGE_KEY, JSON.stringify(dataRef.current));
+    setRecoverySnapshots(loadRecoverySnapshots());
     persist(() => replaceLedgerData(nextData));
   }, [persist]);
+  const restoreRecovery = useCallback((id: string) => {
+    const snapshot = loadRecoverySnapshots().find((candidate) => candidate.id === id);
+    if (!snapshot) throw new Error('That recovery snapshot no longer exists.');
+    const recoveredData = parseRecoverySnapshot(snapshot);
+    preserveRecoverySnapshot('pre-restore', STORAGE_KEY, JSON.stringify(dataRef.current));
+    persist(() => replaceLedgerData(recoveredData));
+    setRecoverySnapshots(loadRecoverySnapshots());
+  }, [persist]);
+  const discardRecovery = useCallback((id: string) => {
+    discardRecoverySnapshot(id);
+    setRecoverySnapshots(loadRecoverySnapshots());
+  }, []);
+  const reloadFromStorage = useCallback(() => window.location.reload(), []);
+  const startFreshAfterBlockedRecovery = useCallback(() => {
+    const freshData = createDefaultLedgerData();
+    const result = saveLedgerData(freshData, { force: true });
+    if (result.status.writeBlocked) throw new Error(result.status.message);
+    expectedRawRef.current = result.rawValue;
+    dataRef.current = freshData;
+    statusRef.current = result.status;
+    setData(freshData);
+    setStatus(result.status);
+    setBlockedRawValue(undefined);
+  }, []);
 
   const value = useMemo<LedgerContextValue>(
     () => ({
       data,
       status,
+      quotaWarning,
+      recoverySnapshots,
+      blockedRawValue,
       resolvedTheme,
       getEntry,
       createDraftForType,
@@ -209,20 +294,31 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       updateHandoffStatus: updateHandoff,
       updatePublication,
       exportData: () => exportLedgerData(data),
-      replaceData
+      replaceData,
+      restoreRecovery,
+      discardRecovery,
+      reloadFromStorage,
+      startFreshAfterBlockedRecovery
     }),
     [
       commitDraftForType,
+      blockedRawValue,
       createHandoff,
       createCommitmentFromEntry,
       createDraftForType,
       data,
       deleteEntryById,
+      discardRecovery,
       discardDraftForType,
       getEntry,
+      quotaWarning,
+      recoverySnapshots,
+      reloadFromStorage,
       replaceData,
+      restoreRecovery,
       resolvedTheme,
       saveDraft,
+      startFreshAfterBlockedRecovery,
       status,
       updateCommitmentById,
       updateAutosave,

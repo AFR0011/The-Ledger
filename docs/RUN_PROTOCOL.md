@@ -1,14 +1,14 @@
 # Run Protocol
 
 ## Environment
-- Prefer Docker with the `node:20` image for install, dev, test, and build commands.
+- Use Node 20.19 or newer within the Node 20 line and npm with the committed lockfile.
 - If Docker Desktop is not running and PowerShell blocks `npm.ps1`, use `npm.cmd` as the host fallback.
 
 ## Commands
 
 ### Install
 ```powershell
-docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm install"
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm ci"
 ```
 
 ### Dev server
@@ -49,12 +49,25 @@ docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run test"
 docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run build"
 ```
 
+### Complete static gate
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm ci && npm run check"
+```
+
+### Browser trust paths
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
+
 ### Host fallback
 ```powershell
-npm.cmd install
+npm.cmd ci
 npm.cmd run lint
 npm.cmd run test
 npm.cmd run build
+npm.cmd run audit:prod
+npm.cmd run audit
 ```
 
 ## Manual Check List

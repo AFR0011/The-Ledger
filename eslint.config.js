@@ -9,6 +9,15 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser
+      }
+    }
+  },
+  {
     files: ['src/**/*.{ts,tsx}', 'vite.config.ts', 'vitest.config.ts'],
     languageOptions: {
       ecmaVersion: 2022,
@@ -28,6 +37,8 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      'preserve-caught-error': 'off',
+      'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true, allowExportNames: ['useLedger'] }

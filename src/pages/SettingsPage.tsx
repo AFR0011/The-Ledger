@@ -5,6 +5,7 @@ import type { ImportEnvelope } from '../types/ledger';
 import { parseLedgerImport } from '../services/backup';
 import { formatDateTime } from '../utils/date';
 import { downloadEntriesZip } from '../services/downloads';
+import { integrationHost, normalizeIntegrationOrigin } from '../services/integrationOrigins';
 import {
   connectLifeOsFolder,
   disconnectLifeOsFolder,
@@ -35,7 +36,23 @@ function FeedbackBanner({ message, tone }: { message: string; tone: FeedbackTone
 }
 
 export function SettingsPage() {
-  const { data, exportData, replaceData, status, updateAutosave, updateIntegrationUrls, updatePublication, updateTheme } = useLedger();
+  const {
+    data,
+    blockedRawValue,
+    discardRecovery,
+    exportData,
+    quotaWarning,
+    recoverySnapshots,
+    reloadFromStorage,
+    replaceData,
+    restoreRecovery,
+    status,
+    startFreshAfterBlockedRecovery,
+    updateAutosave,
+    updateIntegrationUrls,
+    updatePublication,
+    updateTheme
+  } = useLedger();
   const { canInstall, installApp, isInstalled, offlineReady, resetAppShell } = usePwa();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone } | null>(null);
@@ -43,6 +60,8 @@ export function SettingsPage() {
     fileName: string;
     envelope: ImportEnvelope;
   } | null>(null);
+  const [destinationChangeConfirmed, setDestinationChangeConfirmed] = useState(false);
+  const [blockedRawDownloaded, setBlockedRawDownloaded] = useState(false);
   const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
   const [contextOsUrl, setContextOsUrl] = useState(data.settings.contextOsUrl);
   const [socialOsUrl, setSocialOsUrl] = useState(data.settings.socialOsUrl);
@@ -95,6 +114,22 @@ export function SettingsPage() {
     setFeedback({ message: 'Backup exported.', tone: 'success' });
   };
 
+  const downloadRecovery = (id: string, rawValue: string) => {
+    const blob = new Blob([rawValue], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `the-ledger-recovery-${id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadBlockedRaw = () => {
+    if (!blockedRawValue) return;
+    downloadRecovery('blocked-active', blockedRawValue);
+    setBlockedRawDownloaded(true);
+  };
+
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -108,6 +143,7 @@ export function SettingsPage() {
         fileName: file.name,
         envelope
       });
+      setDestinationChangeConfirmed(false);
       setFeedback(null);
     } catch (error) {
       setPendingImport(null);
@@ -125,15 +161,23 @@ export function SettingsPage() {
       return;
     }
 
-    replaceData(pendingImport.envelope.data);
-    setFeedback({
-      message: `Backup imported from ${pendingImport.fileName}. Local entries and drafts were replaced.`,
-      tone: 'success'
-    });
-    setPendingImport(null);
+    try {
+      replaceData(pendingImport.envelope.data);
+      setFeedback({
+        message: `Backup imported from ${pendingImport.fileName}. The prior local ledger is available in Recovery.`,
+        tone: 'success'
+      });
+      setPendingImport(null);
+    } catch (error) {
+      setFeedback({ message: error instanceof Error ? error.message : 'Import could not be completed safely.', tone: 'error' });
+    }
   };
 
-  const hasStorageWarning = status.state === 'unavailable' || status.state === 'corrupted';
+  const destinationChanges = pendingImport
+    ? pendingImport.envelope.data.settings.contextOsUrl !== data.settings.contextOsUrl ||
+      pendingImport.envelope.data.settings.socialOsUrl !== data.settings.socialOsUrl
+    : false;
+  const hasStorageWarning = status.state === 'unavailable' || status.state === 'corrupted' || status.state === 'conflicted';
 
   return (
     <main className="space-y-5">
@@ -209,7 +253,24 @@ export function SettingsPage() {
           <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">These URLs receive approval-gated handoffs. No credentials or journal content are stored in settings.</p>
           <label className="mt-4 block text-[12px] text-[var(--muted)]">ContextOS URL<input className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-3 text-[14px] text-[var(--ink)]" onChange={(event) => setContextOsUrl(event.target.value)} value={contextOsUrl} /></label>
           <label className="mt-4 block text-[12px] text-[var(--muted)]">SocialOS URL<input className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-3 text-[14px] text-[var(--ink)]" onChange={(event) => setSocialOsUrl(event.target.value)} value={socialOsUrl} /></label>
-          <button className="mt-4 min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => { updateIntegrationUrls(contextOsUrl, socialOsUrl); setFeedback({ message: 'Integration URLs saved.', tone: 'success' }); }} type="button">Save system links</button>
+          <button
+            className="mt-4 min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+            onClick={() => {
+              try {
+                const normalizedContext = normalizeIntegrationOrigin(contextOsUrl);
+                const normalizedSocial = normalizeIntegrationOrigin(socialOsUrl);
+                updateIntegrationUrls(normalizedContext, normalizedSocial);
+                setContextOsUrl(normalizedContext);
+                setSocialOsUrl(normalizedSocial);
+                setFeedback({ message: 'Validated integration origins saved.', tone: 'success' });
+              } catch (error) {
+                setFeedback({ message: error instanceof Error ? error.message : 'Integration origins are invalid.', tone: 'error' });
+              }
+            }}
+            type="button"
+          >
+            Save validated origins
+          </button>
         </article>
       </section>
 
@@ -302,8 +363,62 @@ export function SettingsPage() {
               Export a backup before closing the tab. When storage is unavailable or previously corrupted, the in-memory snapshot is the only safe copy until a successful export.
             </div>
           ) : null}
+          {quotaWarning ? (
+            <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--warning-soft)] px-4 py-4 text-[13px] leading-6 text-[var(--warning-ink)]" role="alert">
+              {quotaWarning}
+            </div>
+          ) : null}
+          {status.state === 'conflicted' ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={handleExport} type="button">Export this tab</button>
+              <button className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={reloadFromStorage} type="button">Reload other tab changes</button>
+            </div>
+          ) : null}
+          {status.writeBlocked && blockedRawValue ? (
+            <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--danger-soft)] p-4 text-[13px] leading-6 text-[var(--danger-ink)]">
+              <p>The unreadable active value is still untouched. Download it before explicitly starting fresh.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button className="min-h-11 rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={downloadBlockedRaw} type="button">Download untouched raw value</button>
+                <button className="min-h-11 rounded-md border border-[var(--danger-ink)] bg-[var(--danger-soft)] px-4 py-2.5 text-[13px] font-medium disabled:opacity-40" disabled={!blockedRawDownloaded} onClick={() => {
+                  try {
+                    startFreshAfterBlockedRecovery();
+                    setFeedback({ message: 'A fresh ledger was created after the raw value was downloaded.', tone: 'success' });
+                  } catch (error) {
+                    setFeedback({ message: error instanceof Error ? error.message : 'Could not start fresh.', tone: 'error' });
+                  }
+                }} type="button">Discard active value and start fresh</button>
+              </div>
+            </div>
+          ) : null}
         </article>
       </section>
+
+      {recoverySnapshots.length ? (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Recovery</h3>
+          <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">Original bytes are preserved here before corrupt data is cleared and before imports or restores replace local data.</p>
+          <ul className="mt-4 space-y-3">
+            {recoverySnapshots.map((snapshot) => (
+              <li className="rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] p-4" key={snapshot.id}>
+                <p className="text-[14px] font-medium text-[var(--ink)]">{snapshot.reason.replace(/-/gu, ' ')}</p>
+                <p className="mt-1 text-[12px] text-[var(--muted)]">{formatDateTime(snapshot.capturedAt)} · {snapshot.rawValue.length.toLocaleString()} bytes</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button className="min-h-11 rounded-md border border-[var(--border)] px-3 py-2 text-[13px]" onClick={() => downloadRecovery(snapshot.id, snapshot.rawValue)} type="button">Download raw</button>
+                  <button className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-3 py-2 text-[13px] font-medium text-white" onClick={() => {
+                    try {
+                      restoreRecovery(snapshot.id);
+                      setFeedback({ message: 'Recovery restored. The replaced state was preserved as a new recovery snapshot.', tone: 'success' });
+                    } catch (error) {
+                      setFeedback({ message: error instanceof Error ? error.message : 'This raw snapshot cannot be restored automatically.', tone: 'error' });
+                    }
+                  }} type="button">Restore</button>
+                  <button className="min-h-11 rounded-md border border-transparent px-3 py-2 text-[13px] text-[var(--muted)]" onClick={() => discardRecovery(snapshot.id)} type="button">Discard snapshot</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {pendingImport ? (
         <section
@@ -318,7 +433,7 @@ export function SettingsPage() {
                 Replace the current local ledger
               </h3>
               <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--text-secondary)]">
-                This overwrite is one-way inside the browser. Confirm only if you want to replace every local entry and draft with the selected backup.
+                The current ledger will first be preserved in Recovery. Confirm only if you want to replace every local entry and draft with the selected backup.
               </p>
             </div>
           </div>
@@ -330,6 +445,8 @@ export function SettingsPage() {
               <p>Exported: {formatDateTime(pendingImport.envelope.exportedAt)}</p>
               <p>Entries: {pendingImport.envelope.data.entries.length}</p>
               <p>Drafts: {Object.values(pendingImport.envelope.data.drafts).filter(Boolean).length}</p>
+              <p>ContextOS: {integrationHost(pendingImport.envelope.data.settings.contextOsUrl)}</p>
+              <p>SocialOS: {integrationHost(pendingImport.envelope.data.settings.socialOsUrl)}</p>
             </div>
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--panel-quiet)] px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Current local data</p>
@@ -337,12 +454,22 @@ export function SettingsPage() {
               <p>Drafts: {Object.values(data.drafts).filter(Boolean).length}</p>
               <p>Theme: {data.settings.theme}</p>
               <p>Autosave: {data.settings.autosave ? 'On' : 'Off'}</p>
+              <p>ContextOS: {integrationHost(data.settings.contextOsUrl)}</p>
+              <p>SocialOS: {integrationHost(data.settings.socialOsUrl)}</p>
             </div>
           </div>
+
+          {destinationChanges ? (
+            <label className="mt-4 flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--warning-soft)] p-4 text-[13px] leading-6 text-[var(--warning-ink)]">
+              <input checked={destinationChangeConfirmed} className="mt-1 h-5 w-5" onChange={(event) => setDestinationChangeConfirmed(event.target.checked)} type="checkbox" />
+              <span>I reviewed the changed ContextOS/SocialOS hosts and approve them as private handoff destinations.</span>
+            </label>
+          ) : null}
 
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               className="min-h-11 rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white"
+              disabled={destinationChanges && !destinationChangeConfirmed}
               onClick={confirmImport}
               type="button"
             >

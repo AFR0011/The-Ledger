@@ -11,6 +11,18 @@
 - Prompt model and tag vocabulary: `src/config/prompts.ts`
 - Persistence contracts and local data rules: `src/types/ledger.ts`, `src/services/ledgerRepository.ts`, `src/services/ledgerStorage.ts`, `src/services/backup.ts`
 
+## Authority Order
+- `AGENTS.md` → `BLUEPRINT.md` → `DEV_STATE.md` → actual source/tests →
+  `RISK_REGISTER.md` and `QA_REPORT.md` → product documentation.
+- Do not treat historical completion wording as stronger than current source or
+  failing verification.
+
+## Protected Paths And Data
+- Preserve existing Git history, v1/v2 backup compatibility, legacy entry and
+  prompt rendering, unmanaged LifeOS Markdown, and device-local folder handles.
+- Never place real journal, backup, folder, handoff, account, or personal data in
+  tests, screenshots, logs, commits, CI artifacts, or releases.
+
 ## Working Rules
 - Keep the app offline-first and local-only.
 - Prefer small local diffs over structural churn.
@@ -26,6 +38,12 @@
 4. `docker run --rm -v "${PWD}:/app" -w /app node:20 sh -lc "npm run build"`
 5. Manual browser pass on a mobile-sized viewport:
    start/resume/finish entries, edit/delete entries, search/filter history, export/import backup, theme toggle, offline/PWA behavior.
+
+## Required Commands
+- Supported runtime: Node 20 with the committed npm lockfile.
+- Clean install: `npm ci`
+- Static and behavior gates: `npm run lint`, `npm test`, `npm run build`
+- Dependency gates: `npm audit --omit=dev` and the documented full-tree policy.
 
 ## Done Criteria
 - The change is reflected in code and docs.

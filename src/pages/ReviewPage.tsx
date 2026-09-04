@@ -3,6 +3,7 @@ import { useLedger } from '../app/LedgerProvider';
 import { EmptyState } from '../components/common/EmptyState';
 import { TagPill } from '../components/common/TagPill';
 import { buildHandoffUrl, candidateToHandoff } from '../services/handoff';
+import { buildIntegrationUrl, integrationHost } from '../services/integrationOrigins';
 import { formatDisplayDate } from '../utils/date';
 
 export function ReviewPage() {
@@ -15,6 +16,7 @@ export function ReviewPage() {
     if (!candidate || !entry) return;
     const base = candidate.target === 'contextos' ? data.settings.contextOsUrl : data.settings.socialOsUrl;
     const route = candidate.target === 'contextos' ? '/handoff' : '/capture/handoff';
+    if (!window.confirm(`Open this private handoff at ${integrationHost(base)}? You will review it there before approval.`)) return;
     window.open(buildHandoffUrl(base, route, candidateToHandoff(candidate, entry)), '_blank', 'noopener,noreferrer');
     updateHandoffStatus(candidate.id, 'opened');
   };
@@ -35,7 +37,7 @@ export function ReviewPage() {
             <h3 className="mt-3 text-[20px] font-[510] text-[var(--ink)]">{candidate.title}</h3>
             <p className="mt-2 whitespace-pre-wrap text-[14px] leading-6 text-[var(--text-secondary)]">{candidate.body}</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => openCandidate(candidate.id)} type="button">Review in {candidate.target === 'contextos' ? 'ContextOS' : 'SocialOS'}</button>
+              <button className="rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" onClick={() => openCandidate(candidate.id)} type="button">Review at {integrationHost(candidate.target === 'contextos' ? data.settings.contextOsUrl : data.settings.socialOsUrl)}</button>
               <button className="rounded-md border border-[var(--border)] bg-[var(--panel-quiet)] px-4 py-2.5 text-[13px]" onClick={() => updateHandoffStatus(candidate.id, 'dismissed')} type="button">Dismiss</button>
               <Link className="px-2 py-2.5 text-[13px] text-[var(--accent-bright)]" to={`/entries/${candidate.sourceEntryId}`}>Open source</Link>
             </div>
@@ -47,7 +49,7 @@ export function ReviewPage() {
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Weekly review</p>
           <p className="mt-3 text-[14px] leading-6 text-[var(--text-secondary)]">New weekly reviews are stored in ContextOS. Historical Ledger weeklies remain in entry history.</p>
-          <a className="mt-4 inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`} rel="noreferrer" target="_blank">Open ContextOS Reviews</a>
+          <a className="mt-4 inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" href={buildIntegrationUrl(data.settings.contextOsUrl, '/reviews')} rel="noreferrer" target="_blank">Open {integrationHost(data.settings.contextOsUrl)}</a>
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Legacy commitments</p>

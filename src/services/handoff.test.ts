@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeHandoff, encodeHandoff, validateHandoff, type LifeOsHandoffV1 } from './handoff';
+import { buildHandoffUrl, decodeHandoff, encodeHandoff, validateHandoff, type LifeOsHandoffV1 } from './handoff';
 
 const payload: LifeOsHandoffV1 = {
   schema: 'lifeos-handoff', version: 1, id: 'ledger-entry-1-contextos-next-action', source: 'the-ledger',
@@ -18,5 +18,11 @@ describe('lifeos handoffs', () => {
   it('rejects wrong targets and oversized bodies', () => {
     expect(() => decodeHandoff(encodeHandoff(payload), 'socialos')).toThrow(/not intended/u);
     expect(() => validateHandoff({ ...payload, body: 'x'.repeat(6_001) })).toThrow(/6,000/u);
+  });
+
+  it('builds handoffs only for validated origins', () => {
+    expect(buildHandoffUrl('https://context.example', '/inbox', payload)).toMatch(/^https:\/\/context\.example\/inbox#handoff=/u);
+    expect(() => buildHandoffUrl('https://context.example/redirect', '/inbox', payload)).toThrow(/origins only/u);
+    expect(() => buildHandoffUrl('http://context.example', '/inbox', payload)).toThrow(/HTTPS/u);
   });
 });

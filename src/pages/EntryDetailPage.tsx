@@ -6,6 +6,7 @@ import { TagPill } from '../components/common/TagPill';
 import { getEntryBlueprint } from '../config/prompts';
 import { downloadEntryMarkdown } from '../services/downloads';
 import { buildHandoffUrl, candidateToHandoff } from '../services/handoff';
+import { buildIntegrationUrl, integrationHost } from '../services/integrationOrigins';
 import {
   connectLifeOsFolder,
   loadLifeOsFolder,
@@ -102,6 +103,8 @@ export function EntryDetailPage() {
   const openHandoff = (target: 'contextos' | 'socialos', body: string) => {
     const trimmed = body.trim();
     if (!trimmed) return;
+    const baseUrl = target === 'contextos' ? data.settings.contextOsUrl : data.settings.socialOsUrl;
+    if (!window.confirm(`Open this private handoff at ${integrationHost(baseUrl)}? You will review it there before approval.`)) return;
     const candidate = createHandoff(entry.id, {
       target,
       kind: target === 'contextos' ? 'next-action' : 'social-reflection',
@@ -109,7 +112,6 @@ export function EntryDetailPage() {
       body: trimmed,
       area: target === 'socialos' ? 'relationships-social' : entry.domainTags[0]
     });
-    const baseUrl = target === 'contextos' ? data.settings.contextOsUrl : data.settings.socialOsUrl;
     const route = target === 'contextos' ? '/handoff' : '/capture/handoff';
     window.open(buildHandoffUrl(baseUrl, route, candidateToHandoff(candidate, entry)), '_blank', 'noopener,noreferrer');
     updateHandoffStatus(candidate.id, 'opened');
@@ -180,7 +182,7 @@ export function EntryDetailPage() {
               {publishFeedback ? <p aria-live="polite" className="text-[12px] leading-5 text-[var(--text-secondary)]">{publishFeedback}</p> : null}
             </div>
           ) : entry.type === 'weekly' ? (
-            <a className="mt-4 inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" href={`${data.settings.contextOsUrl.replace(/\/+$/u, '')}/reviews`} rel="noreferrer" target="_blank">Continue in ContextOS</a>
+            <a className="mt-4 inline-flex rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white" href={buildIntegrationUrl(data.settings.contextOsUrl, '/reviews')} rel="noreferrer" target="_blank">Continue at {integrationHost(data.settings.contextOsUrl)}</a>
           ) : <p className="mt-4 text-[13px] text-[var(--text-secondary)]">Legacy duplicates require a disambiguated manual download and cannot replace the canonical note.</p>}
         </section>
 
@@ -188,7 +190,7 @@ export function EntryDetailPage() {
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-panel">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">ContextOS proposal</p>
             <textarea className="mt-4 min-h-28 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] p-3 text-[14px] text-[var(--ink)]" onChange={(event) => setContextText(event.target.value)} placeholder="An intention or next action to review in ContextOS" value={contextText} />
-            <button className="mt-3 w-full rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40" disabled={!contextText.trim()} onClick={() => openHandoff('contextos', contextText)} type="button">Review in ContextOS</button>
+            <button className="mt-3 w-full rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40" disabled={!contextText.trim()} onClick={() => openHandoff('contextos', contextText)} type="button">Review at {integrationHost(data.settings.contextOsUrl)}</button>
           </section>
         ) : null}
 
@@ -197,7 +199,7 @@ export function EntryDetailPage() {
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">SocialOS excerpt</p>
             <p className="mt-3 text-[13px] leading-5 text-[var(--text-secondary)]">Choose or rewrite only the exact relationship context that SocialOS should receive.</p>
             <textarea className="mt-3 min-h-28 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-quiet)] p-3 text-[14px] text-[var(--ink)]" onChange={(event) => setSocialExcerpt(event.target.value)} placeholder="Paste a deliberately selected excerpt" value={socialExcerpt} />
-            <button className="mt-3 w-full rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40" disabled={!socialExcerpt.trim()} onClick={() => openHandoff('socialos', socialExcerpt)} type="button">Review in SocialOS</button>
+            <button className="mt-3 w-full rounded-md border border-[var(--accent-border)] bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40" disabled={!socialExcerpt.trim()} onClick={() => openHandoff('socialos', socialExcerpt)} type="button">Review at {integrationHost(data.settings.socialOsUrl)}</button>
           </section>
         ) : null}
 
